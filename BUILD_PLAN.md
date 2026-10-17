@@ -7,7 +7,8 @@
 - **Roles:** Claude writes the code and explains it; the developer reviews and tests each milestone on their Android phone before it is merged.
 - **Git:** one branch and one PR per milestone (`m0-setup`, `m1-auth`, …), merged into `main` after review.
 - **Platform:** Android first (on Windows; iOS needs a Mac and an Apple developer account). The code stays cross-platform.
-- **Testing:** an Android phone plus the Android emulator, which act as two users from M5 onward.
+- **Builds:** EAS cloud builds. No Android Studio or Android SDK on the dev machine; the development build APK is built in the cloud and installed on the phone. A rebuild is needed only when native dependencies change.
+- **Testing:** an Android phone. From M5 onward a second user is needed: a second Android phone (e.g. a friend's) with the dev build installed.
 
 ## Principles
 
@@ -21,9 +22,9 @@
 ## Milestones
 
 ### M0 — Setup
-- Install: Node LTS, Git, Java JDK 17, Android Studio + emulator, Expo account + EAS CLI, Firebase CLI
+- Install: Node LTS, Git, JDK 21 (for the Firebase Emulator), EAS CLI, Firebase CLI; create an Expo account
 - Create a Firebase project (Auth + Firestore) and register the Android app (`google-services.json`)
-- Create the Expo project with React Native Firebase, then build and install the dev build on the phone
+- Create the Expo project with React Native Firebase, build the dev build with EAS (cloud) and install it on the phone
 - Folder structure, ESLint/Prettier, Jest, Firebase Emulator config
 
 **Done when:** the app opens on the phone and reads a test value from Firestore.

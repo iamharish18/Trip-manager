@@ -287,25 +287,87 @@ trips/{tripId}/settlements/{sid}
 
 ---
 
-## 15. Screens
+## 15. UI & Design
 
-1. **Auth:** Sign up / Log in
-2. **Home:** my trips (Active / Closed), with "Create Trip" and "Join Trip" buttons
-3. **Create Trip:** name, dates, participant names
-4. **Join Trip:** enter Trip ID, then pick an unclaimed name
-5. **Trip Dashboard:** total spent, my balance, recent expenses, status badge, sync indicator
-6. **Add / Edit Expense**
-7. **Expense Detail:** details, split breakdown, comments
-8. **Balances:** per-person Paid / Share / Net
-9. **Category Breakdown:** pie chart and totals
-10. **Participants:** list with claimed / left status, add / rename / remove, Trip ID to share
-11. **Categories:** default and custom list, add / delete custom
-12. **Settlement** (Closed / Final only): earlier payments and remaining settlements with Paid toggles
-13. **Trip Settings:** Close / Reopen / Delete (creator); Leave (member)
-14. **PDF Export:** trip summary, all expenses, category breakdown, balances, settlements with paid status
+### 15.1 Visual style
+- **Clean and minimal:** flat surfaces, thin borders, no shadows or gradients, generous spacing.
+- **Component library:** React Native Paper (Material Design 3), themed with the colors below.
+- **Light and dark mode:** follows the phone's system setting.
+- **Language:** English only.
+
+### 15.2 Colors
+
+| Token | Light | Dark | Used for |
+|---|---|---|---|
+| Primary (teal) | `#0F766E` | `#2DD4BF` | Buttons, active tab, links, selected chips |
+| Primary tint | `#E6F6F4` | `#123532` | Summary cards, icon backgrounds |
+| Text on primary | `#FFFFFF` | `#0B1120` | Text on teal buttons |
+| Positive (owed to you) | `#15803D` | `#4ADE80` | Positive balances, amounts you receive, "Joined" |
+| Negative (you owe) | `#B91C1C` | `#F87171` | Negative balances, amounts you pay, destructive actions |
+| Background | `#F8FAFC` | `#0B1120` | Screen background |
+| Card | `#FFFFFF` | `#151C2C` | Cards, inputs |
+| Text | `#0F172A` | `#E2E8F0` | Primary text |
+| Muted text | `#64748B` | `#94A3B8` | Secondary text, labels |
+| Border | `#E2E8F0` | `#253047` | Card and input borders |
+
+- Money amounts are colored **from the viewer's point of view**: green if they receive it, red if they pay it.
+- **Category chart colors:** each category gets a fixed, distinct color (default categories have preset colors; custom categories take the next color from a fixed list).
+- **Avatars:** a colored circle with the person's initial. The color comes from the name, so the same person always has the same color.
+
+### 15.3 Formats
+- **Currency:** ₹ with Indian grouping and no decimals: `₹1,00,000`, `₹27,600`, `−₹900`, `+₹11,100`.
+- **Dates:** `17 Oct 2026`; the expense list groups by day with "Today" / "Yesterday" for recent days.
+- **Times** (comments): `9:42 pm`.
+
+### 15.4 Navigation
+
+```
+Auth stack (logged out)
+  Log in ⇄ Sign up
+
+App stack (logged in)
+  Home (your trips)
+  ├── Create trip
+  ├── Join trip
+  └── Trip (bottom tabs)
+        ├── Expenses ── + Add expense (floating button)
+        │       └── Expense detail ── Edit expense
+        ├── Balances   (Settle up section when Closed / Final)
+        ├── Insights   (category breakdown)
+        └── Members
+      ⚙ Trip settings (top-right) ── Categories, Edit name and dates
+      📄 Export PDF (top-right, Closed / Final only)
+```
+
+A **sync indicator** sits in the trip's top bar: synced (cloud with check), offline (cloud off), pending changes (cloud with arrow).
+
+### 15.5 Screens
+
+| # | Screen | Contents |
+|---|---|---|
+| 1 | **Log in / Sign up** | App logo; email, password (+ name on sign up); switch link between the two |
+| 2 | **Home** | Trip cards: icon, name, dates, number of people, status badge (Active / Reopened / Closed), total, your balance. Buttons: Create trip, Join trip |
+| 3 | **Create trip** | Name, start and end dates, participant list (creator added automatically as "You"), "Add a name" field |
+| 4 | **Join trip** | Trip ID field → trip preview (name, creator, dates) → "Which one is you?" list. Claimed names greyed out as "Already joined". Button: "Join as {name}" |
+| 5 | **Expenses tab** | Summary card (total spent, your position); expenses grouped by date with category icon, description, who paid, comment count, amount; floating + button (hidden when locked) |
+| 6 | **Add / Edit expense** | Large amount with number keypad; "Paid by" chips (defaults to You); category chips with "+ New"; description (optional); date (defaults to today); "Split equally among N · ₹X each" preview; Save button |
+| 7 | **Expense detail** | Icon, description, category, date, payer, amount; split list; comments with author, time and text; comment box. Edit / delete icons and comment box shown only when not locked; comment delete icon only on your own comments |
+| 8 | **Balances tab** | Your position card; each person with avatar, Paid / Share and Net (green / red); "not joined" label on placeholders. While active: note that settle-up appears on close |
+| 9 | **Balances tab: Settle up** (Closed / Final) | "Trip closed" banner; progress ("1 of 3 paid"); each payment "A pays B ₹X" with Mark paid / Paid toggle; Earlier payments section (Final, after a reopen) |
+| 10 | **Insights tab** | Donut chart with total in the centre; categories with color, percentage and amount, largest first |
+| 11 | **Members tab** | Trip ID card with copy and share (hidden after close, with "Expires when the trip is closed" note); each person with avatar and status (Creator / Joined / Not joined yet / Left the trip); ⋮ menu: Rename, Remove (creator only); "Add person" button |
+| 12 | **Trip settings** | Edit name and dates; Categories; Export PDF (enabled when closed). Creator: Close trip (with explanation) / Reopen once for 24 hours / Delete trip (red, with confirmation). Member: Leave trip (Active only) |
+| 13 | **Categories** | Default and custom categories; add custom; delete custom if unused |
+| 14 | **PDF export** | Trip summary, all expenses, category breakdown, balances, settlements with paid status; shared via the phone's share sheet |
+
+### 15.6 Empty and locked states
+- **No trips:** an invitation to create or join a trip.
+- **No expenses:** an invitation to add the first expense, pointing to the + button.
+- **Locked trip:** a "Trip closed" banner; add, edit, delete and comment controls are hidden.
+- **Reopened trip:** a banner showing the time left before it closes automatically.
 
 ---
 
 ## 16. Open Questions
 
-None. All questions are resolved; awaiting final approval.
+None. All questions are resolved.
