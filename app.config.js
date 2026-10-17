@@ -27,6 +27,10 @@ module.exports = {
     web: {
       favicon: './assets/favicon.png',
     },
+    owner: 'iamharish18',
+    extra: {
+      eas: { projectId: '8d15d180-e15a-4a99-84c0-96015de725b5' },
+    },
     plugins: [
       'expo-router',
       '@react-native-firebase/app',
