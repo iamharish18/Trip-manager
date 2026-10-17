@@ -1,0 +1,311 @@
+# Trip Manager — Specification v1
+
+> **Status:** Approved. Build order is in [BUILD_PLAN.md](BUILD_PLAN.md).
+> **Last updated:** 2026-10-17
+
+A mobile app where a group tracks shared trip expenses. One person creates a trip and adds friends by name. Everyone's expenses are recorded and split equally. When the trip closes, the app tells each person exactly whom to pay.
+
+---
+
+## 1. Scope
+
+### In scope (v1)
+- Trips with name-only participants who can later claim their spot via a Trip ID
+- Expenses split equally, in INR whole rupees
+- Live per-person balances and category breakdown (default + custom categories)
+- Comments on expenses
+- Push notifications for new expenses
+- Offline-first with automatic sync
+- Close / reopen-once trip lifecycle
+- Simplified settlements with Paid / Not Paid tracking
+- PDF export
+
+### Out of scope (v1)
+- Unequal splits (exact amounts, percentages, shares)
+- Multiple payers per expense
+- Multi-currency
+- Budget and budget alerts
+- Receipt photos
+- Notifications for anything other than new expenses
+
+---
+
+## 2. Tech Stack
+
+| Layer | Choice | Reason |
+|---|---|---|
+| App | React Native (Expo **development build**), JavaScript | Known language; one codebase for Android + iOS. Android first. |
+| Firebase SDK | **React Native Firebase** (`@react-native-firebase/*`) | Native SDK: offline data survives app restarts (the Firebase JS SDK keeps it in memory only). Requires a dev build, not Expo Go. |
+| Auth | Firebase Auth (email/password) | Simple, free |
+| Database | Cloud Firestore | Built-in offline cache and auto-sync |
+| Testing | Jest (logic), Firebase Emulator (security rules & functions) | Correctness of money logic and permissions |
+| Server logic | Firebase Cloud Functions | Notifications, 24h auto-close, settlement generation |
+| Notifications | Expo Push Notifications | Simplest option with Expo |
+| PDF | expo-print + expo-sharing | HTML → PDF, then share |
+
+**Cost note:** Cloud Functions require the Firebase **Blaze (pay-as-you-go)** plan, so a card must be added. Expected cost at this scale is ₹0.
+
+---
+
+## 3. Roles
+
+| Role | Description |
+|---|---|
+| **Creator** | User who created the trip. Has all member rights plus admin actions. Cannot leave the trip (can only delete it). |
+| **Member** | A participant who has claimed a name with their account. |
+| **Placeholder** | A name-only participant without an account (never claimed, or the member left). |
+
+---
+
+## 4. Trip Lifecycle
+
+```
+ACTIVE ──(creator closes)──► CLOSED ──(creator reopens, once)──► REOPENED ──(creator closes OR 24h elapse)──► FINAL
+```
+
+| Capability | Active | Closed | Reopened (≤24h) | Final |
+|---|---|---|---|---|
+| Add / edit / delete expenses | ✅ | ❌ | ✅ | ❌ |
+| Add comments | ✅ | ❌ | ✅ | ❌ |
+| Delete own comment | ✅ | ❌ | ✅ | ❌ |
+| Claim a spot via Trip ID | ✅ | ❌ | ❌ | ❌ |
+| Add / rename participants | ✅ | ❌ | ✅ | ❌ |
+| Member leaves trip | ✅ | ❌ | ❌ | ❌ |
+| Live balances & category breakdown | ✅ | ✅ | ✅ | ✅ |
+| Settlement screen + Paid / Not Paid | ❌ | ✅ | ❌ | ✅ |
+| PDF export | ❌ | ✅ | ❌ | ✅ |
+| Reopen | — | ✅ (once) | — | ❌ |
+
+### Rules
+- Only the **creator** can close and reopen.
+- **Closing requires an internet connection** (prevents a close made offline from conflicting with friends' unsynced expenses).
+- The **Trip ID is created with the trip and expires on the first close**. It never becomes valid again, including during the reopen window.
+- A trip can be **reopened only once**. A server job **auto-closes it 24 hours after reopening** if the creator hasn't closed it already. That close is final.
+- Any offline change that reaches the server after the trip is locked is **rejected**, and the app shows: *"Trip is closed — this change was not saved."*
+
+---
+
+## 5. Participants
+
+- The creator adds participants by name at trip creation or later, while the trip is Active or Reopened.
+- **Claiming:** a user signs up, enters the Trip ID, and picks an unclaimed name. That name is linked to their account, and all past expenses under that name are now theirs.
+- The creator can **rename** any participant.
+- The creator can **remove** a participant only if that participant is not part of any expense (as payer or in a split).
+- Names never claimed before close stay as placeholders permanently.
+
+### Leaving a trip
+- A member (not the creator) can leave a trip **only while it is Active**. Leaving is not allowed once the trip has been closed (including during the reopen window).
+- On leaving, the member **loses access** to the trip and stops receiving notifications.
+- Their **name stays on the trip** as a placeholder participant:
+  - it remains in all past expenses, splits, balances, settlements and the PDF
+  - **new expenses are still split with them**, because they are still a participant
+- Their name becomes **unclaimed** again. While the Trip ID is valid (until the first close), they can rejoin with the Trip ID and claim their name again. Like any unclaimed name, it can be claimed by whoever claims it first.
+
+---
+
+## 6. Expenses
+
+| Field | Rules |
+|---|---|
+| Amount | Whole rupees only (integer > 0) |
+| Paid by | Exactly one participant (claimed or placeholder) |
+| Category | One from the trip's category list |
+| Date | Defaults to today |
+| Description | Free text |
+
+- **Who can add / edit / delete:** the creator and any claimed member, only while the trip is Active or Reopened.
+- **Split:** equally among the participants on the trip **at the moment the expense is created**. This list is saved with the expense and does not change when participants are added later.
+- **Conflicts:** the latest edit wins.
+- **Deletion:** a soft delete internally (`isDeleted = true`), so an offline delete and an offline edit resolve cleanly. To the user the expense simply disappears.
+
+### Rounding rule
+All amounts are whole rupees; no decimals are shown anywhere.
+
+```
+base      = floor(amount / n)
+remainder = amount − base × n
+Each non-payer's share = base
+Payer's share          = base + remainder
+```
+
+*Example:* ₹100 paid by Priya, split among Priya, Rahul and Amit → Priya ₹34, Rahul ₹33, Amit ₹33.
+
+---
+
+## 7. Categories
+
+- **Default categories:** Food · Stay · Travel · Activities · Shopping · Other
+- The creator or any member can **add custom categories** to a trip (while it is Active or Reopened).
+- Custom categories are **per trip**.
+- A custom category can be deleted only if no expense uses it. Default categories cannot be deleted.
+
+---
+
+## 8. Balances (visible at all times)
+
+For each participant:
+
+```
+Paid  = sum of amounts of expenses they paid
+Share = sum of their split shares across all expenses
+Net   = Paid − Share + PaymentsMade − PaymentsReceived
+```
+
+- **Net > 0** → others owe this person
+- **Net < 0** → this person owes others
+
+`PaymentsMade` / `PaymentsReceived` come from settlements marked Paid (see §9). They are zero until the trip is closed for the first time.
+
+Each user sees their own position prominently on the trip dashboard, e.g. *"You are owed ₹800"* / *"You owe ₹300"*.
+
+---
+
+## 9. Settlements
+
+### Debt simplification
+Settlement suggestions are generated by a greedy algorithm:
+1. Take each participant's Net balance.
+2. Repeatedly match the person owed the most with the person who owes the most, and create a payment for the smaller of the two amounts.
+3. Repeat until everyone is at 0.
+
+This gives at most *n − 1* payments, all in whole rupees.
+
+### Marking as Paid
+A settlement can be toggled Paid / Not Paid by:
+- the **payer**
+- the **receiver**
+- the **creator**, for any settlement (needed when a party is an unclaimed placeholder)
+
+### Close → Reopen → Final close (Option B: recorded payments)
+1. **First close:** settlements are generated from Net balances.
+2. During **Closed**, people mark settlements Paid.
+3. **Reopen:** the settlement screen is hidden. Settlements already marked **Paid** become **Recorded Payments**: real money that changed hands, still counted in everyone's Net. Unpaid settlements are discarded.
+4. **Final close:** new settlement suggestions are generated from the updated Net balances, which include recorded payments. A recorded payment may even lead to a reverse payment if expenses were removed.
+5. In **Final**, the settlement screen shows:
+   - **Earlier payments** (Recorded Payments, read-only)
+   - **Remaining settlements**, each with a Paid / Not Paid toggle
+
+Example:
+- First close: Rahul → Priya ₹1,000. Rahul marks it Paid.
+- Reopen: a new ₹300 expense paid by Priya, split 3 ways (Rahul's share ₹100).
+- Final close: Earlier payment *Rahul → Priya ₹1,000 (paid)*; remaining *Rahul → Priya ₹100*.
+
+---
+
+## 10. Comments
+
+- The creator and members can comment on any expense while the trip is Active or Reopened.
+- Comments cannot be edited.
+- Only the **author** can delete their own comment, and only while the trip is Active or Reopened.
+- Once closed, comments are read-only.
+
+---
+
+## 11. Notifications
+
+- Sent **only when a new expense is added**.
+- Recipients: all claimed members of the trip **except** the person who added it (and except members who have left).
+- Example text: *"Rahul added ₹1,200 · Dinner at Fisherman's Wharf (Food)"*
+- An expense added offline triggers its notification when it syncs.
+- Implemented with a Cloud Function triggered when a Firestore expense document is created.
+
+---
+
+## 12. Offline & Sync
+
+- Firestore offline persistence is enabled: all reads come from the local cache and writes are queued.
+- Queued writes sync automatically when the connection returns.
+- The dashboard shows a **sync indicator**: Online · Offline · Pending changes.
+- Conflicting edits: latest edit wins.
+- Writes rejected by the server (trip locked) show a clear message to the user.
+- Actions that **require being online:** sign up / log in, join trip (claim), close trip, reopen trip, delete trip.
+
+---
+
+## 13. Trip Deletion & Leaving
+
+- Only the **creator** can delete a trip. This permanently deletes all of its data (participants, expenses, comments, categories, settlements) after a confirmation dialog.
+- A member can leave a trip while it is Active (§5). The creator cannot leave.
+
+---
+
+## 14. Data Model (Firestore)
+
+```
+users/{uid}
+  name, email, pushToken, createdAt
+
+trips/{tripId}
+  name, startDate, endDate
+  creatorUid
+  joinCode              // short shareable code, e.g. "GOA7K2"; invalid after first close
+  status                // active | closed | reopened | final
+  reopenUsed            // bool
+  reopenedAt, closedAt
+  memberUids[]          // current members (for security rules & queries)
+
+trips/{tripId}/participants/{pid}
+  name
+  claimedByUid          // null = placeholder
+  leftAt                // set if member left
+  addedAt
+
+trips/{tripId}/categories/{cid}
+  name, isDefault, createdByUid
+
+trips/{tripId}/expenses/{eid}
+  amount                // integer rupees
+  paidByPid
+  categoryId
+  date, description
+  splitAmongPids[]      // snapshot at creation
+  createdByUid, createdAt, updatedAt
+  isDeleted
+
+trips/{tripId}/expenses/{eid}/comments/{cmid}
+  text, authorUid, createdAt
+
+trips/{tripId}/settlements/{sid}
+  fromPid, toPid, amount
+  round                 // 1 = first close, 2 = final close
+  isPaid
+  isRecordedPayment     // true once carried over through a reopen (read-only)
+  markedByUid, markedAt
+```
+
+**Firestore Security Rules** enforce: only members can read or write; edits are blocked unless the status is active/reopened; only the creator can close, reopen, delete or remove participants; only the payer, the receiver or the creator can mark a settlement Paid; only the author can delete a comment.
+
+### Cloud Functions
+| Function | Trigger | Purpose |
+|---|---|---|
+| `onExpenseCreated` | Firestore create | Send push notifications |
+| `closeTrip` | Callable (creator) | Lock trip, expire joinCode, generate settlements |
+| `reopenTrip` | Callable (creator) | Convert paid settlements to recorded payments, discard unpaid, set `reopenedAt` |
+| `autoCloseReopened` | Scheduled (e.g. every 15 min) | Final-close trips reopened more than 24h ago |
+| `joinTrip` | Callable | Validate joinCode, claim a participant |
+| `deleteTrip` | Callable (creator) | Recursively delete all trip data |
+
+---
+
+## 15. Screens
+
+1. **Auth:** Sign up / Log in
+2. **Home:** my trips (Active / Closed), with "Create Trip" and "Join Trip" buttons
+3. **Create Trip:** name, dates, participant names
+4. **Join Trip:** enter Trip ID, then pick an unclaimed name
+5. **Trip Dashboard:** total spent, my balance, recent expenses, status badge, sync indicator
+6. **Add / Edit Expense**
+7. **Expense Detail:** details, split breakdown, comments
+8. **Balances:** per-person Paid / Share / Net
+9. **Category Breakdown:** pie chart and totals
+10. **Participants:** list with claimed / left status, add / rename / remove, Trip ID to share
+11. **Categories:** default and custom list, add / delete custom
+12. **Settlement** (Closed / Final only): earlier payments and remaining settlements with Paid toggles
+13. **Trip Settings:** Close / Reopen / Delete (creator); Leave (member)
+14. **PDF Export:** trip summary, all expenses, category breakdown, balances, settlements with paid status
+
+---
+
+## 16. Open Questions
+
+None. All questions are resolved; awaiting final approval.
