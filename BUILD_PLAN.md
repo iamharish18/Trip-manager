@@ -9,6 +9,7 @@
 - **Platform:** Android first (on Windows; iOS needs a Mac and an Apple developer account). The code stays cross-platform.
 - **Builds:** EAS cloud builds. No Android Studio or Android SDK on the dev machine; the development build APK is built in the cloud and installed on the phone. A rebuild is needed only when native dependencies change.
 - **Testing:** an Android phone. From M5 onward a second user is needed: a second Android phone (e.g. a friend's) with the dev build installed.
+- **Dev server:** `npm start` runs Metro through a tunnel, because the phone can't reach the PC directly on the home Wi-Fi. `npm run start:lan` is the faster direct mode for networks where it works.
 
 ## Principles
 
