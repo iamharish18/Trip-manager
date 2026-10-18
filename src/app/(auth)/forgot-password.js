@@ -7,7 +7,7 @@ import FormField from '@/components/FormField';
 import FormMessage from '@/components/FormMessage';
 import Screen from '@/components/Screen';
 import ScreenHeader from '@/components/ScreenHeader';
-import { describeAuthError } from '@/logic/authErrors';
+import { describeError } from '@/logic/errors';
 import { validateEmail } from '@/logic/validation';
 import { requestPasswordReset } from '@/services/auth';
 
@@ -31,7 +31,7 @@ export default function ForgotPasswordScreen() {
       await requestPasswordReset(email);
       setSent(true);
     } catch (error) {
-      const { field, message } = describeAuthError(error);
+      const { field, message } = describeError(error);
       setErrors({ [field ?? 'form']: message });
     } finally {
       setSubmitting(false);

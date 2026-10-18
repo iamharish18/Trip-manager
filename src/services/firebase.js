@@ -9,3 +9,8 @@ const app = getApp();
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// `exists` is a method in the modular API but a property in older versions.
+export function docExists(snapshot) {
+  return typeof snapshot.exists === 'function' ? snapshot.exists() : Boolean(snapshot.exists);
+}

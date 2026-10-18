@@ -40,7 +40,10 @@
 - Create a trip (name, dates, participant names) and generate the join code
 - Trip list on Home
 - Participants screen: add, rename, remove (blocked if the participant is in an expense)
-- Default categories created with the trip
+- Default categories live in code (custom ones are stored from M3)
+- Trip screen with bottom tabs; Members works, other tabs are placeholders
+- Trip settings: edit name and dates (creator only)
+- Removing a person is always allowed in M2; M3 blocks it for people in expenses
 
 **Done when:** you can create a trip and manage its participants.
 

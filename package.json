@@ -31,6 +31,7 @@
     "react-dom": "19.3.0",
     "react-native": "0.88.0",
     "react-native-paper": "^5.15.3",
+    "react-native-paper-dates": "^0.24.1",
     "react-native-safe-area-context": "~5.10.1",
     "react-native-screens": "~4.30.0"
   },
@@ -55,6 +56,11 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "<rootDir>/firebase/"
+    ],
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|color|color-convert|color-name|color-string))",
+      "/node_modules/react-native-reanimated/plugin/",
+      "/node_modules/@react-native/babel-preset/"
     ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1"
