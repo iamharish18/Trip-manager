@@ -12,8 +12,8 @@
 | M2 | Trips and participants | ✅ Done | [#3](https://github.com/iamharish18/Trip-manager/pull/3) |
 | M3 | Expenses and core logic | ✅ Done | [#4](https://github.com/iamharish18/Trip-manager/pull/4) |
 | M4 | Balances and insights | ✅ Done | [#5](https://github.com/iamharish18/Trip-manager/pull/5) |
-| M5 | Multi-user: join, claim, leave | ⏭️ Next | — |
-| M6 | Comments | ⏳ Not started | — |
+| M5 | Multi-user: join, claim, leave | ✅ Done | [#6](https://github.com/iamharish18/Trip-manager/pull/6) |
+| M6 | Comments | ⏭️ Next | — |
 | M7 | Notifications | ⏳ Not started | — |
 | M8 | Trip lifecycle and settlements | ⏳ Not started | — |
 | M9 | Offline hardening | ⏳ Not started | — |
@@ -63,6 +63,13 @@ Decisions agreed in discussion, by milestone. SPEC.md holds the full rules; this
 - Percentages are whole numbers that always add up to 100%.
 - Home cards show the trip total and your balance.
 - No tapping through to filtered expense lists for now (possible M11 polish).
+
+### M5 — Joining and leaving
+- **No subscription, ever:** Firebase stays on the free Spark plan, so there are no Cloud Functions. Joining and leaving are transactions checked by security rules; M7 and M8 use the same approach (see SPEC §14).
+- Anyone with the Trip ID can join an Active trip: claim an unclaimed name, or **add themselves** if not on the list (same name rules, 20-person limit).
+- Anyone with the Trip ID can see the trip's preview (name, dates, names); expenses stay members-only.
+- Joining and leaving need internet. Testing uses two phones.
+- Join-by-link postponed to M11.
 
 ---
 

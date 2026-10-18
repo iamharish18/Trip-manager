@@ -65,7 +65,11 @@ export default function BalancesTab() {
       renderItem={({ item }) => {
         const { participant, paid, share, net } = item;
         const isMe = participant.id === me?.id;
-        const notJoined = !participant.claimedByUid;
+        const label = participant.claimedByUid
+          ? null
+          : participant.leftAt
+            ? ' · left'
+            : ' · not joined';
         return (
           <View
             style={[styles.row, { backgroundColor: theme.app.card, borderColor: theme.app.border }]}
@@ -75,7 +79,7 @@ export default function BalancesTab() {
               <Text numberOfLines={1}>
                 {participant.name}
                 {isMe ? <Text style={{ color: theme.app.muted }}> · You</Text> : null}
-                {notJoined ? <Text style={{ color: theme.app.muted }}> · not joined</Text> : null}
+                {label ? <Text style={{ color: theme.app.muted }}>{label}</Text> : null}
               </Text>
               <Text variant="bodySmall" style={{ color: theme.app.muted }}>
                 Paid {formatRupees(paid)} · Share {formatRupees(share)}

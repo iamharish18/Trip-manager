@@ -41,11 +41,11 @@ A mobile app where a group tracks shared trip expenses. One person creates a tri
 | Auth | Firebase Auth (email/password) | Simple, free |
 | Database | Cloud Firestore | Built-in offline cache and auto-sync |
 | Testing | Jest (logic), Firebase Emulator (security rules & functions) | Correctness of money logic and permissions |
-| Server logic | Firebase Cloud Functions | Notifications, 24h auto-close, settlement generation |
-| Notifications | Expo Push Notifications | Simplest option with Expo |
+| Server logic | **None: Firestore security rules + app code** | Free plan only (see cost note) |
+| Notifications | Expo Push Notifications, sent from the phone that adds the expense | Free; no server needed |
 | PDF | expo-print + expo-sharing | HTML → PDF, then share |
 
-**Cost note:** Cloud Functions require the Firebase **Blaze (pay-as-you-go)** plan, so a card must be added. Expected cost at this scale is ₹0.
+**Cost note:** the app must run with **no subscription**, so Firebase stays on the free **Spark** plan and **Cloud Functions are not used** (they need the paid Blaze plan). Everything a server would do is handled by security rules and the app itself (see §14).
 
 ---
 
@@ -107,7 +107,12 @@ ACTIVE ──(creator closes)──► CLOSED ──(creator reopens, once)─�
 - The creator adds participants by name at trip creation or later, while the trip is Active or Reopened.
 - Names are **unique within a trip, ignoring capitals** ("rahul" = "Rahul"), 1–40 characters each, at most **20 people** per trip.
 - Only the creator can add, rename and remove participants. The creator can rename themselves; the creator's own participant cannot be removed.
-- **Claiming:** a user signs up, enters the Trip ID, and picks an unclaimed name. That name is linked to their account, and all past expenses under that name are now theirs.
+- **Joining:** anyone with the Trip ID can join while the trip is Active. They sign up, enter the Trip ID, see a preview (trip name, creator, dates, names) and either:
+  - **claim an unclaimed name**: it's linked to their account, and all past expenses under that name are now theirs; or
+  - **add themselves** if their name isn't on the list ("I'm not on the list"): same name rules (unique ignoring capitals, 1–40 characters) and the 20-person limit.
+- Joining needs internet. If two people claim the same name at the same moment, one wins and the other is asked to pick again.
+- Joined members can add, edit and delete expenses and categories, but can't manage people or edit the trip.
+- Anyone who has the Trip ID can see that trip's preview (name, dates, names) before joining; expenses and balances are visible to members only.
 - The creator can **rename** any participant.
 - The creator can **remove** a participant only if that participant is not part of any expense (as payer or in a split).
 - Names never claimed before close stay as placeholders permanently.
@@ -244,7 +249,7 @@ Example:
 - The dashboard shows a **sync indicator**: Online · Offline · Pending changes.
 - Conflicting edits: latest edit wins.
 - Writes rejected by the server (trip locked) show a clear message to the user.
-- Actions that **require being online:** sign up / log in, create trip, join trip (claim), close trip, reopen trip, delete trip.
+- Actions that **require being online:** sign up / log in, create trip, join trip (claim), leave trip, close trip, reopen trip, delete trip.
 
 ---
 
@@ -305,15 +310,14 @@ trips/{tripId}/settlements/{sid}
 
 **Firestore Security Rules** enforce: only members can read or write; edits are blocked unless the status is active/reopened; only the creator can close, reopen, delete or remove participants; only the payer, the receiver or the creator can mark a settlement Paid; only the author can delete a comment.
 
-### Cloud Functions
-| Function | Trigger | Purpose |
-|---|---|---|
-| `onExpenseCreated` | Firestore create | Send push notifications |
-| `closeTrip` | Callable (creator) | Lock trip, expire joinCode, generate settlements |
-| `reopenTrip` | Callable (creator) | Convert paid settlements to recorded payments, discard unpaid, set `reopenedAt` |
-| `autoCloseReopened` | Scheduled (e.g. every 15 min) | Final-close trips reopened more than 24h ago |
-| `joinTrip` | Callable | Validate joinCode, claim a participant |
-| `deleteTrip` | Callable (creator) | Recursively delete all trip data |
+### Server-side behaviour without Cloud Functions (free plan)
+| Behaviour | How it works |
+|---|---|
+| **Join / claim** (M5) | One transaction from the joiner's phone: claim the name (or add a new one) **and** add themselves to `memberUids`. Rules allow it only on an Active trip, only for an unclaimed name, and only adding the joiner themselves |
+| **Leave** (M5) | One transaction: release the name (`claimedByUid` → null, `leftAt` set) and remove only yourself from `memberUids`. Not allowed for the creator |
+| **Notifications** (M7) | The phone that adds an expense sends the push through Expo's push service once the expense has synced |
+| **Close / reopen / settlements** (M8) | The creator's phone closes the trip and writes the settlements. The 24-hour reopen window is enforced by the rules comparing the server time with `reopenedAt`; the next person to open the trip after that finalises it |
+| **Delete trip** (M10) | The creator's phone deletes the trip and everything in it |
 
 ---
 

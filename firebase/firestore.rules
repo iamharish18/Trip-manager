@@ -73,7 +73,12 @@ service cloud.firestore {
     }
 
     match /trips/{tripId} {
-      allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
+      // Members read their trips. Anyone signed in who knows an Active
+      // trip (i.e. has its Trip ID) can read it, to preview it before
+      // joining (SPEC §5). Listing is members-only, so trips can't be browsed.
+      allow get: if signedIn()
+        && (request.auth.uid in resource.data.memberUids || resource.data.status == 'active');
+      allow list: if signedIn() && request.auth.uid in resource.data.memberUids;
 
       // Created in one transaction with its Trip ID and participants.
       allow create: if signedIn()
@@ -90,12 +95,32 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/joinCodes/$(request.resource.data.joinCode)).data.tripId == tripId;
 
       // Only the creator edits the name and dates, while the trip is open.
-      allow update: if signedIn()
-        && resource.data.creatorUid == request.auth.uid
-        && editable(resource)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'startDate', 'endDate'])
-        && validText(request.resource.data.name, 60)
-        && validTripDates(request.resource.data);
+      function editsDetails() {
+        return resource.data.creatorUid == request.auth.uid
+          && editable(resource)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'startDate', 'endDate'])
+          && validText(request.resource.data.name, 60)
+          && validTripDates(request.resource.data);
+      }
+
+      // Joining an Active trip: add only yourself to the members.
+      function joins() {
+        return resource.data.status == 'active'
+          && !(request.auth.uid in resource.data.memberUids)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids'])
+          && request.resource.data.memberUids == resource.data.memberUids.concat([request.auth.uid]);
+      }
+
+      // Leaving an Active trip: remove only yourself. The creator can't leave.
+      function leaves() {
+        return resource.data.status == 'active'
+          && request.auth.uid in resource.data.memberUids
+          && request.auth.uid != resource.data.creatorUid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids'])
+          && request.resource.data.memberUids == resource.data.memberUids.removeAll([request.auth.uid]);
+      }
+
+      allow update: if signedIn() && (editsDetails() || joins() || leaves());
 
       allow delete: if false;
 
@@ -113,27 +138,67 @@ service cloud.firestore {
 
       // ---- Participants (SPEC §5) ----
 
-      match /participants/{pid} {
-        allow read: if isMember();
+      // You're joining in this same write: not a member before, and the
+      // trip's members afterwards are the old ones plus you.
+      function joiningNow() {
+        return trip().data.status == 'active'
+          && !(request.auth.uid in trip().data.memberUids)
+          && tripAfter().data.memberUids == trip().data.memberUids.concat([request.auth.uid]);
+      }
 
-        // The creator adds people while the trip is open. Only during trip
-        // creation may a participant be claimed (by the creator, for themself).
+      match /participants/{pid} {
+        // Members, and anyone previewing an Active trip before joining.
+        allow read: if isMember() || (signedIn() && trip().data.status == 'active');
+
+        function validNewParticipant() {
+          return request.resource.data.keys().hasOnly(['name', 'claimedByUid', 'addedAt'])
+            && request.resource.data.keys().hasAll(['name', 'claimedByUid', 'addedAt'])
+            && validName(request.resource.data.name)
+            && request.resource.data.addedAt == request.time;
+        }
+
+        // The creator adds people while the trip is open; only during trip
+        // creation may they add one claimed by themself. Someone joining may
+        // add themself (claimed by them) if their name isn't on the list.
         allow create: if signedIn()
-          && tripAfter().data.creatorUid == request.auth.uid
-          && editable(tripAfter())
-          && request.resource.data.keys().hasOnly(['name', 'claimedByUid', 'addedAt'])
-          && request.resource.data.keys().hasAll(['name', 'claimedByUid', 'addedAt'])
-          && validName(request.resource.data.name)
-          && request.resource.data.addedAt == request.time
-          && (request.resource.data.claimedByUid == null
-              || (request.resource.data.claimedByUid == request.auth.uid && !exists(tripPath(tripId))));
+          && validNewParticipant()
+          && (
+            (tripAfter().data.creatorUid == request.auth.uid
+              && editable(tripAfter())
+              && (request.resource.data.claimedByUid == null
+                  || (request.resource.data.claimedByUid == request.auth.uid && !exists(tripPath(tripId)))))
+            || (request.resource.data.claimedByUid == request.auth.uid && joiningNow())
+          );
 
         // The creator renames anyone, including themself.
-        allow update: if signedIn()
-          && trip().data.creatorUid == request.auth.uid
-          && editable(trip())
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
-          && validName(request.resource.data.name);
+        function renames() {
+          return trip().data.creatorUid == request.auth.uid
+            && editable(trip())
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+            && validName(request.resource.data.name);
+        }
+
+        // Claiming an unclaimed name while joining.
+        function claims() {
+          return resource.data.claimedByUid == null
+            && request.resource.data.claimedByUid == request.auth.uid
+            && request.resource.data.get('leftAt', null) == null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimedByUid', 'leftAt'])
+            && joiningNow();
+        }
+
+        // Releasing your own name while leaving (not the creator).
+        function releases() {
+          return resource.data.claimedByUid == request.auth.uid
+            && request.auth.uid != trip().data.creatorUid
+            && trip().data.status == 'active'
+            && request.resource.data.claimedByUid == null
+            && request.resource.data.leftAt == request.time
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimedByUid', 'leftAt'])
+            && !(request.auth.uid in tripAfter().data.memberUids);
+        }
+
+        allow update: if signedIn() && (renames() || claims() || releases());
 
         // The creator removes people who haven't claimed their spot.
         // (The app also blocks removing anyone who is in an expense.)

@@ -180,11 +180,20 @@ describe('reading trips', () => {
     );
   });
 
-  it('hides trips from non-members', async () => {
+  it('lets non-members preview an Active trip they know, but not browse trips', async () => {
+    const db = dbAs(STRANGER);
+    await assertSucceeds(getDoc(doc(db, 'trips', 'trip1')));
+    await assertSucceeds(getDocs(collection(db, 'trips', 'trip1', 'participants')));
+    await assertFails(getDocs(collection(db, 'trips')));
+    await assertFails(getDocs(query(collection(db, 'trips'), where('status', '==', 'active'))));
+  });
+
+  it('hides closed trips from non-members', async () => {
+    await testEnv.clearFirestore();
+    await seedTrip({ status: 'closed' });
     const db = dbAs(STRANGER);
     await assertFails(getDoc(doc(db, 'trips', 'trip1')));
     await assertFails(getDocs(collection(db, 'trips', 'trip1', 'participants')));
-    await assertFails(getDocs(collection(db, 'trips')));
   });
 
   it('lets signed-in users look up a Trip ID, but not list them', async () => {

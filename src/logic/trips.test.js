@@ -31,6 +31,9 @@ describe('participantStatus', () => {
     expect(participantStatus({ claimedByUid: 'c' }, 'c')).toBe('Creator');
     expect(participantStatus({ claimedByUid: 'u2' }, 'c')).toBe('Joined');
     expect(participantStatus({ claimedByUid: null }, 'c')).toBe('Not joined yet');
+    expect(participantStatus({ claimedByUid: null, leftAt: { seconds: 1 } }, 'c')).toBe(
+      'Left the trip',
+    );
   });
 });
 

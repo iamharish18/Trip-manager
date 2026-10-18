@@ -63,12 +63,12 @@
 **Done when:** you can track a whole trip as a single user.
 
 ### M5 — Multi-user: Join, Claim, Leave
-- Switch the Firebase project to the **Blaze** plan
-- Cloud Function `joinTrip`; Join Trip screen; claiming a name
+- **Free plan only:** no Blaze, no Cloud Functions; joining and leaving are rules-checked transactions
+- Join Trip screen: Trip ID → preview → claim a name, or add yourself if you're not on the list
 - Leave trip (Active only; name stays, becomes unclaimed, can be re-claimed)
-- `memberUids`; Firestore security rules for membership and permissions
+- `memberUids`; Firestore security rules for joining, leaving and membership
 
-**Done when:** two accounts (phone + emulator) see and edit the same trip.
+**Done when:** two accounts (two phones) see and edit the same trip.
 
 ### M6 — Comments
 - Comments on Expense Detail; authors delete their own
@@ -76,13 +76,13 @@
 **Done when:** both users can comment and authors can delete their own comments.
 
 ### M7 — Notifications
-- Store Expo push tokens; Cloud Function `onExpenseCreated`
+- Store Expo push tokens; the phone that adds an expense sends the push via Expo (no Cloud Function)
 
 **Done when:** adding an expense on one device sends a notification to the other.
 
 ### M8 — Trip Lifecycle & Settlements ⭐
 - Debt simplification logic + tests, including recorded payments after a reopen
-- Cloud Functions `closeTrip`, `reopenTrip`, `autoCloseReopened`
+- Close / reopen from the creator's phone; the 24-hour reopen window enforced by rules using the server time (no Cloud Functions)
 - Settlement screen with Paid / Not Paid toggles (payer, receiver, creator)
 - Locking enforced in both the UI and the security rules
 
@@ -98,7 +98,7 @@
 
 ### M10 — PDF Export & Trip Deletion
 - PDF trip summary (expenses, categories, balances, settlements) and sharing
-- Cloud Function `deleteTrip`
+- Delete trip from the creator's phone (no Cloud Function)
 
 **Done when:** a closed trip exports to a PDF that can be shared, and the creator can delete a trip.
 

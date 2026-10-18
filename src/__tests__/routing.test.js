@@ -19,6 +19,22 @@ const mockParticipants = [
   { id: 'p1', name: 'Rahul', claimedByUid: 'u1', addedAt: null },
   { id: 'p2', name: 'Amit', claimedByUid: null, addedAt: null },
 ];
+// A trip someone else created, which u1 joined (as Rahul).
+const mockJoinedTrip = {
+  ...mockTrip,
+  id: 't2',
+  name: 'Manali trip',
+  creatorUid: 'u9',
+  memberUids: ['u9', 'u1'],
+  joinCode: 'MNL234',
+};
+const mockJoinedParticipants = [
+  { id: 'q9', name: 'Zoya', claimedByUid: 'u9', addedAt: null },
+  { id: 'q1', name: 'Rahul', claimedByUid: 'u1', addedAt: null },
+  { id: 'q3', name: 'Priya', claimedByUid: null, leftAt: { seconds: 1 }, addedAt: null },
+];
+const mockTrips = { t1: mockTrip, t2: mockJoinedTrip };
+const mockPeople = { t1: mockParticipants, t2: mockJoinedParticipants };
 let mockExpenses = [];
 const mockCategories = [{ id: 'c-fuel', name: 'Fuel', createdAt: null }];
 const cabExpense = {
@@ -46,11 +62,11 @@ jest.mock('@/services/trips', () => ({
     return () => {};
   },
   subscribeToTrip: (tripId, onChange) => {
-    onChange(tripId === 't1' ? mockTrip : null);
+    onChange(mockTrips[tripId] ?? null);
     return () => {};
   },
   subscribeToParticipants: (tripId, onChange) => {
-    onChange(tripId === 't1' ? mockParticipants : []);
+    onChange(mockPeople[tripId] ?? []);
     return () => {};
   },
 }));
@@ -198,6 +214,37 @@ describe('when logged in', () => {
     expect(screen.getByText('25%')).toBeTruthy();
     expect(screen.getByText('Food')).toBeTruthy();
     expect(screen.getByText('Travel')).toBeTruthy();
+  });
+
+  it('opens Join trip from its route', async () => {
+    await renderRouter('./src/app', { initialUrl: '/join' });
+    expect(screen.getByText('Join a trip')).toBeTruthy();
+    expect(screen.getByText('Find trip')).toBeTruthy();
+  });
+
+  it('shows a joined trip’s members without creator controls', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t2/members' });
+    expect(screen.getByText('Left the trip')).toBeTruthy();
+    expect(screen.getByText('Joined')).toBeTruthy();
+    expect(screen.queryByText('Add person')).toBeNull();
+    expect(screen.queryByLabelText('Options for Priya')).toBeNull();
+  });
+
+  it('offers Leave trip to members but not to the creator', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t2/settings' });
+    expect(screen.getByText('Leave trip')).toBeTruthy();
+    expect(screen.getByText('Only the trip’s creator can change its name and dates.')).toBeTruthy();
+  });
+
+  it('does not offer Leave trip to the creator', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t1/settings' });
+    expect(screen.getByText('Edit trip')).toBeTruthy();
+    expect(screen.queryByText('Leave trip')).toBeNull();
+  });
+
+  it('marks people who left on Balances', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t2/balances' });
+    expect(screen.getByText(' · left')).toBeTruthy();
   });
 
   it('shows categories with how often each is used', async () => {
