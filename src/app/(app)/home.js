@@ -1,9 +1,8 @@
 // Home: your trips, plus Create trip and Join trip.
 
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Icon, Snackbar, Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Icon, Text } from 'react-native-paper';
 
 import Avatar from '@/components/Avatar';
 import Screen from '@/components/Screen';
@@ -19,7 +18,6 @@ export default function HomeScreen() {
   const router = useRouter();
   const { displayName } = useSession();
   const { trips, isLoading } = useMyTrips();
-  const [notice, setNotice] = useState('');
 
   let body;
   if (isLoading) {
@@ -75,18 +73,10 @@ export default function HomeScreen() {
         <Button mode="contained" style={styles.action} onPress={() => router.push('/trips/new')}>
           Create trip
         </Button>
-        <Button
-          mode="outlined"
-          style={styles.action}
-          onPress={() => setNotice('Joining trips is coming soon.')}
-        >
+        <Button mode="outlined" style={styles.action} onPress={() => router.push('/join')}>
           Join trip
         </Button>
       </View>
-
-      <Snackbar visible={Boolean(notice)} onDismiss={() => setNotice('')} duration={2500}>
-        {notice}
-      </Snackbar>
     </Screen>
   );
 }

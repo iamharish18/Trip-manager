@@ -1,23 +1,27 @@
-// Trip settings: edit the name and dates (creator only) and manage categories.
-// Close, reopen, delete, leave and export arrive in later milestones.
+// Trip settings: edit the name and dates (creator only), manage categories,
+// and leave the trip (members). Close, reopen, delete and export come later.
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Button, Icon, Text } from 'react-native-paper';
+import { Button, Dialog, Icon, Portal, Text } from 'react-native-paper';
 
 import DateField from '@/components/DateField';
 import FormField from '@/components/FormField';
+import FormMessage from '@/components/FormMessage';
 import Screen from '@/components/Screen';
 import ScreenHeader from '@/components/ScreenHeader';
 import { formatTripDates } from '@/logic/dates';
+import { describeError } from '@/logic/errors';
 import {
   collectErrors,
   validateEndDate,
   validateStartDate,
   validateTripName,
 } from '@/logic/validation';
+import { leaveTrip } from '@/services/join';
 import { updateTripDetails } from '@/services/trips';
+import { useSession } from '@/state/session';
 import { useTrip } from '@/state/trips';
 import { useAppTheme } from '@/theme';
 
@@ -54,10 +58,78 @@ function CategoriesLink({ tripId }) {
   );
 }
 
+// Leave trip (members only, Active trips only). Needs internet.
+function LeaveTrip() {
+  const theme = useAppTheme();
+  const router = useRouter();
+  const { user } = useSession();
+  const { tripId, trip, me } = useTrip();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function leave() {
+    setBusy(true);
+    setError(null);
+    try {
+      await leaveTrip(tripId, me.id, user.uid);
+      router.replace('/home');
+    } catch (err) {
+      setError(describeError(err).message);
+      setBusy(false);
+      setConfirming(false);
+    }
+  }
+
+  return (
+    <>
+      <FormMessage message={error} />
+      <Pressable
+        onPress={() => setConfirming(true)}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.card,
+          styles.linkRow,
+          { backgroundColor: theme.app.card, borderColor: theme.app.negative },
+          pressed && styles.pressed,
+        ]}
+      >
+        <Icon source="logout" size={20} color={theme.app.negative} />
+        <View style={styles.grow}>
+          <Text style={{ color: theme.app.negative }}>Leave trip</Text>
+          <Text variant="bodySmall" style={{ color: theme.app.muted }}>
+            Needs internet
+          </Text>
+        </View>
+      </Pressable>
+
+      <Portal>
+        <Dialog visible={confirming} onDismiss={() => !busy && setConfirming(false)}>
+          <Dialog.Title>Leave {trip.name}?</Dialog.Title>
+          <Dialog.Content>
+            <Text>
+              The trip will disappear from your list. Your name stays on it, and your expenses and
+              balance don’t change. You can rejoin with the Trip ID while the trip is open.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirming(false)} disabled={busy}>
+              Cancel
+            </Button>
+            <Button textColor={theme.app.negative} onPress={leave} loading={busy} disabled={busy}>
+              Leave
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </>
+  );
+}
+
 export default function TripSettingsScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { trip, tripId, isCreator, isOpen } = useTrip();
+  const { trip, tripId, isCreator, isOpen, me } = useTrip();
 
   const [name, setName] = useState(trip.name);
   const [startDate, setStartDate] = useState(trip.startDate);
@@ -99,6 +171,11 @@ export default function TripSettingsScreen() {
             ? 'This trip is closed, so its name and dates can’t be changed.'
             : 'Only the trip’s creator can change its name and dates.'}
         </InfoNote>
+        {!isCreator && me && trip.status === 'active' ? (
+          <View style={styles.leave}>
+            <LeaveTrip />
+          </View>
+        ) : null}
       </Screen>
     );
   }
@@ -166,5 +243,6 @@ const styles = StyleSheet.create({
   },
   save: { marginTop: 'auto' },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  leave: { marginTop: 'auto' },
   pressed: { opacity: 0.7 },
 });

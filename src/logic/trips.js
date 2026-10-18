@@ -15,10 +15,11 @@ export function sortParticipants(participants, creatorUid) {
   });
 }
 
-// "Creator", "Joined" or "Not joined yet".
+// "Creator", "Joined", "Left the trip" or "Not joined yet".
 export function participantStatus(participant, creatorUid) {
   if (participant.claimedByUid && participant.claimedByUid === creatorUid) return 'Creator';
   if (participant.claimedByUid) return 'Joined';
+  if (participant.leftAt) return 'Left the trip';
   return 'Not joined yet';
 }
 

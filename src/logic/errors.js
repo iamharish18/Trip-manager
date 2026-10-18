@@ -34,6 +34,17 @@ const MESSAGES = {
     field: null,
     message: 'Couldn’t create a Trip ID. Try again.',
   },
+  'join/invalid-code': {
+    field: 'code',
+    message: 'A Trip ID has 6 letters and numbers, like GQA7K2.',
+  },
+  'join/not-found': { field: 'code', message: 'No trip found with that ID.' },
+  'join/expired': { field: 'code', message: 'This trip is closed, so its Trip ID has expired.' },
+  'join/taken': { field: null, message: 'Someone just took this name. Pick another.' },
+  'join/name-gone': { field: null, message: 'That name was just removed. Pick another.' },
+  'join/already-member': { field: null, message: 'You’re already on this trip.' },
+  'leave/closed': { field: null, message: 'This trip is closed, so you can’t leave it.' },
+  'leave/creator': { field: null, message: 'The trip’s creator can’t leave it.' },
 };
 
 const FALLBACK = { field: null, message: 'Something went wrong. Try again.' };
