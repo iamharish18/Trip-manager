@@ -11,8 +11,8 @@
 | M1 | Accounts and Home | ✅ Done | [#2](https://github.com/iamharish18/Trip-manager/pull/2) |
 | M2 | Trips and participants | ✅ Done | [#3](https://github.com/iamharish18/Trip-manager/pull/3) |
 | M3 | Expenses and core logic | ✅ Done | [#4](https://github.com/iamharish18/Trip-manager/pull/4) |
-| M4 | Balances and insights | ⏭️ Next | — |
-| M5 | Multi-user: join, claim, leave | ⏳ Not started | — |
+| M4 | Balances and insights | ✅ Done | [#5](https://github.com/iamharish18/Trip-manager/pull/5) |
+| M5 | Multi-user: join, claim, leave | ⏭️ Next | — |
 | M6 | Comments | ⏳ Not started | — |
 | M7 | Notifications | ⏳ Not started | — |
 | M8 | Trip lifecycle and settlements | ⏳ Not started | — |
@@ -56,6 +56,13 @@ Decisions agreed in discussion, by milestone. SPEC.md holds the full rules; this
 - Your position ("You're owed ₹X") shown on the Expenses tab.
 - Split list fixed at creation; "Paid by" can change only within it.
 - Custom categories: 1–20 characters, unique, not a default name; added from "+ New" or Trip settings → Categories; deleted only when unused.
+
+### M4 — Balances and insights
+- Donut chart with `react-native-svg`, so **a new dev build was needed** (build of 18 Oct 2026). Install that APK; older builds crash on the Insights tab.
+- Balances order: you first, then most owed to most owing.
+- Percentages are whole numbers that always add up to 100%.
+- Home cards show the trip total and your balance.
+- No tapping through to filtered expense lists for now (possible M11 polish).
 
 ---
 

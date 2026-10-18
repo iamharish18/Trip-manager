@@ -42,6 +42,12 @@ export function useParticipants(tripId) {
   return { participants: value ?? [], error, isLoading };
 }
 
+// Non-deleted expenses of a trip.
+export function useExpenses(tripId) {
+  const { value, error, isLoading } = useKeyedSubscription(tripId, subscribeToExpenses);
+  return { expenses: activeExpenses(value ?? []), error, isLoading };
+}
+
 // ---- One open trip, shared by its tabs and settings ----
 
 const TripContext = createContext(null);

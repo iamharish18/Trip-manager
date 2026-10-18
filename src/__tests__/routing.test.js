@@ -158,6 +158,48 @@ describe('when logged in', () => {
     expect(screen.getByLabelText('Delete expense')).toBeTruthy();
   });
 
+  it('shows Home cards with the total and your balance', async () => {
+    mockExpenses = [cabExpense];
+    await renderRouter('./src/app', { initialUrl: '/home' });
+    expect(screen.getByText('Total ₹1,201')).toBeTruthy();
+    expect(screen.getByText('You’re owed ₹600')).toBeTruthy();
+  });
+
+  it('shows balances as all square before any expenses', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t1/balances' });
+    expect(screen.getByText('You’re all square')).toBeTruthy();
+    expect(screen.getByText('Add expenses to see balances.')).toBeTruthy();
+    expect(screen.getByText('Who pays whom appears when the trip is closed.')).toBeTruthy();
+  });
+
+  it('shows each person’s paid, share and net', async () => {
+    mockExpenses = [cabExpense];
+    await renderRouter('./src/app', { initialUrl: '/trips/t1/balances' });
+    expect(screen.getByText('You’re owed ₹600')).toBeTruthy();
+    expect(screen.getByText('Paid ₹1,201 · Share ₹601')).toBeTruthy();
+    expect(screen.getByText('Paid ₹0 · Share ₹600')).toBeTruthy();
+    expect(screen.getByText('+₹600')).toBeTruthy();
+    expect(screen.getByText('−₹600')).toBeTruthy();
+  });
+
+  it('shows no chart before any spending', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t1/insights' });
+    expect(screen.getByText('No spending yet')).toBeTruthy();
+  });
+
+  it('shows spending by category with percentages', async () => {
+    mockExpenses = [
+      cabExpense,
+      { ...cabExpense, id: 'e2', amount: 3603, categoryId: 'food', description: 'Dinner' },
+    ];
+    await renderRouter('./src/app', { initialUrl: '/trips/t1/insights' });
+    expect(screen.getByText('₹4,804')).toBeTruthy();
+    expect(screen.getByText('75%')).toBeTruthy();
+    expect(screen.getByText('25%')).toBeTruthy();
+    expect(screen.getByText('Food')).toBeTruthy();
+    expect(screen.getByText('Travel')).toBeTruthy();
+  });
+
   it('shows categories with how often each is used', async () => {
     mockExpenses = [{ ...cabExpense, categoryId: 'c-fuel' }];
     await renderRouter('./src/app', { initialUrl: '/trips/t1/categories' });
