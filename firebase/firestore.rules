@@ -283,6 +283,30 @@ service cloud.firestore {
         // Deleting is a soft delete (isDeleted), never a real one.
         allow delete: if false;
       }
+
+      // ---- Comments (SPEC §10) ----
+
+      match /comments/{cid} {
+        allow read: if isMember();
+
+        // Members post as themselves (their own spot on the trip) on an
+        // existing expense, while the trip is open. Up to 300 characters.
+        allow create: if isMember()
+          && editable(trip())
+          && request.resource.data.keys().hasOnly(['expenseId', 'text', 'authorUid', 'authorPid', 'createdAt'])
+          && request.resource.data.keys().hasAll(['expenseId', 'text', 'authorUid', 'authorPid', 'createdAt'])
+          && request.resource.data.authorUid == request.auth.uid
+          && get(/databases/$(database)/documents/trips/$(tripId)/participants/$(request.resource.data.authorPid)).data.claimedByUid == request.auth.uid
+          && exists(/databases/$(database)/documents/trips/$(tripId)/expenses/$(request.resource.data.expenseId))
+          && validText(request.resource.data.text, 300)
+          && request.resource.data.createdAt == request.time;
+
+        // Comments can't be edited; only the author deletes, while open.
+        allow update: if false;
+        allow delete: if isMember()
+          && editable(trip())
+          && resource.data.authorUid == request.auth.uid;
+      }
     }
   }
 }

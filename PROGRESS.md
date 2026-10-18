@@ -13,8 +13,8 @@
 | M3 | Expenses and core logic | ✅ Done | [#4](https://github.com/iamharish18/Trip-manager/pull/4) |
 | M4 | Balances and insights | ✅ Done | [#5](https://github.com/iamharish18/Trip-manager/pull/5) |
 | M5 | Multi-user: join, claim, leave | ✅ Done | [#6](https://github.com/iamharish18/Trip-manager/pull/6) |
-| M6 | Comments | ⏭️ Next | — |
-| M7 | Notifications | ⏳ Not started | — |
+| M6 | Comments | ✅ Done | [#7](https://github.com/iamharish18/Trip-manager/pull/7) |
+| M7 | Notifications | ⏭️ Next | — |
 | M8 | Trip lifecycle and settlements | ⏳ Not started | — |
 | M9 | Offline hardening | ⏳ Not started | — |
 | M10 | PDF export and trip deletion | ⏳ Not started | — |
@@ -70,6 +70,12 @@ Decisions agreed in discussion, by milestone. SPEC.md holds the full rules; this
 - Anyone with the Trip ID can see the trip's preview (name, dates, names); expenses stay members-only.
 - Joining and leaving need internet. Testing uses two phones.
 - Join-by-link postponed to M11.
+
+### M6 — Comments
+- Up to 300 characters; delete your own after a confirmation; no editing.
+- Times: "9:42 pm", "Yesterday, 9:42 pm", "14 Dec, 9:42 pm".
+- Offline comments show "Sending…" until synced; counts show on the Expenses list.
+- Stored in one comments list per trip (not inside each expense), so counts need a single listener.
 
 ---
 

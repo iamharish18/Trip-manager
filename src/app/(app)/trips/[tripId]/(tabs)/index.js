@@ -7,6 +7,7 @@ import { ActivityIndicator, FAB, Snackbar, Text } from 'react-native-paper';
 import ComingSoon from '@/components/ComingSoon';
 import ExpenseRow from '@/components/ExpenseRow';
 import { findCategory } from '@/logic/categories';
+import { commentCountLabel, commentCounts } from '@/logic/comments';
 import { groupExpensesByDay } from '@/logic/expenseList';
 import { formatRupees } from '@/logic/format';
 import { computeBalances, totalSpent } from '@/logic/money';
@@ -46,6 +47,7 @@ export default function ExpensesTab() {
     expensesLoading,
     participants,
     customCategories,
+    comments,
     me,
     canWrite,
     deletedExpenseId,
@@ -55,6 +57,7 @@ export default function ExpensesTab() {
   const balances = computeBalances(expenses, participants);
   const position = me && expenses.length ? describePosition(balances[me.id]?.net ?? 0) : null;
   const sections = groupExpensesByDay(expenses);
+  const counts = commentCounts(comments);
 
   function undoDelete() {
     setExpenseDeleted(tripId, deletedExpenseId, false).catch(() => {});
@@ -96,6 +99,7 @@ export default function ExpensesTab() {
             expense={item}
             category={findCategory(item.categoryId, customCategories)}
             payerLabel={payerLabel(item.paidByPid, participants, me?.id)}
+            commentLabel={commentCountLabel(counts[item.id])}
             onPress={() => router.push(`/trips/${tripId}/expenses/${item.id}`)}
           />
         )}

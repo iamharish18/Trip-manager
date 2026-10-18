@@ -5,10 +5,12 @@ import CategoryIcon from '@/components/CategoryIcon';
 import { formatRupees } from '@/logic/format';
 import { useAppTheme } from '@/theme';
 
-// One expense in the list: icon, description (or category name), payer, amount.
-export default function ExpenseRow({ expense, category, payerLabel, onPress }) {
+// One expense in the list: icon, description (or category name), payer,
+// comment count, amount.
+export default function ExpenseRow({ expense, category, payerLabel, commentLabel, onPress }) {
   const theme = useAppTheme();
   const title = expense.description || category.name;
+  const subtitle = commentLabel ? `${payerLabel} · ${commentLabel}` : payerLabel;
   return (
     <Pressable
       onPress={onPress}
@@ -24,7 +26,7 @@ export default function ExpenseRow({ expense, category, payerLabel, onPress }) {
       <View style={styles.text}>
         <Text numberOfLines={1}>{title}</Text>
         <Text variant="bodySmall" style={{ color: theme.app.muted }} numberOfLines={1}>
-          {payerLabel}
+          {subtitle}
         </Text>
       </View>
       <Text variant="titleSmall">{formatRupees(expense.amount)}</Text>

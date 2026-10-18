@@ -52,6 +52,26 @@ export function dayLabel(iso, today = todayIso()) {
   return formatDate(iso);
 }
 
+// "9:42 pm"
+function clockTime(date) {
+  const h = date.getHours();
+  const m = String(date.getMinutes()).padStart(2, '0');
+  return `${h % 12 || 12}:${m} ${h < 12 ? 'am' : 'pm'}`;
+}
+
+// When a comment was posted (SPEC §10): "9:42 pm" today,
+// "Yesterday, 9:42 pm", "14 Dec, 9:42 pm", or "14 Dec 2025, 9:42 pm"
+// in an earlier year.
+export function formatCommentTime(date, now = new Date()) {
+  const day = toIsoDate(date);
+  const label = dayLabel(day, toIsoDate(now));
+  if (label === 'Today') return clockTime(date);
+  if (label === 'Yesterday') return `Yesterday, ${clockTime(date)}`;
+  const sameYear = date.getFullYear() === now.getFullYear();
+  const dayText = sameYear ? `${date.getDate()} ${MONTHS[date.getMonth()]}` : formatDate(day);
+  return `${dayText}, ${clockTime(date)}`;
+}
+
 // "From 12 Dec 2026", "12 – 16 Dec 2026", "28 Nov – 3 Dec 2026",
 // or "28 Dec 2026 – 3 Jan 2027".
 export function formatTripDates(startIso, endIso) {

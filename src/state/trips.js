@@ -5,6 +5,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 
 import { activeExpenses } from '@/logic/money';
 import { isTripOpen } from '@/logic/trips';
+import { subscribeToComments } from '@/services/comments';
 import { subscribeToCategories, subscribeToExpenses } from '@/services/expenses';
 import { subscribeToMyTrips, subscribeToParticipants, subscribeToTrip } from '@/services/trips';
 import { useSession } from '@/state/session';
@@ -58,6 +59,7 @@ export function TripProvider({ tripId, children }) {
   const { participants } = useParticipants(tripId);
   const expensesState = useKeyedSubscription(tripId, subscribeToExpenses);
   const categoriesState = useKeyedSubscription(tripId, subscribeToCategories);
+  const commentsState = useKeyedSubscription(tripId, subscribeToComments);
   // The last deleted expense, offered for Undo on the Expenses tab.
   const [deletedExpenseId, setDeletedExpenseId] = useState(null);
 
@@ -75,6 +77,8 @@ export function TripProvider({ tripId, children }) {
     expenses: activeExpenses(allExpenses),
     expensesLoading: expensesState.isLoading,
     customCategories: categoriesState.value ?? [],
+    // All comments on the trip; each has `expenseId` and `pending`.
+    comments: commentsState.value ?? [],
     // Your own spot on the trip, if you've claimed one.
     me: participants.find((p) => user && p.claimedByUid === user.uid) ?? null,
     isLoading: tripState.isLoading,

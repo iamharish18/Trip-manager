@@ -227,8 +227,12 @@ Example:
 
 - The creator and members can comment on any expense while the trip is Active or Reopened.
 - Comments cannot be edited.
-- Only the **author** can delete their own comment, and only while the trip is Active or Reopened.
+- Only the **author** can delete their own comment (after a short confirmation), and only while the trip is Active or Reopened.
 - Once closed, comments are read-only.
+- Up to **300 characters**. Shown oldest first with avatar, the author's **trip name** (follows renames), and time: "9:42 pm" today, "Yesterday, 9:42 pm", or "14 Dec, 9:42 pm".
+- Comments can be written offline: they appear at once with a "Sending…" label until synced.
+- The Expenses list shows a comment count per expense ("Priya paid · 2 comments").
+- Comments of a deleted expense are hidden with it, and return if the delete is undone.
 
 ---
 
@@ -297,8 +301,10 @@ trips/{tripId}/expenses/{eid}
   createdByUid, createdAt, updatedAt
   isDeleted
 
-trips/{tripId}/expenses/{eid}/comments/{cmid}
-  text, authorUid, createdAt
+trips/{tripId}/comments/{cmid}     // one list per trip, so counts need one listener
+  expenseId, text
+  authorUid, authorPid  // author's account and their spot on the trip
+  createdAt
 
 trips/{tripId}/settlements/{sid}
   fromPid, toPid, amount
