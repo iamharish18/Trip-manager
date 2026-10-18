@@ -1,9 +1,9 @@
-// Trip settings. In M2: edit the name and dates (creator only).
+// Trip settings: edit the name and dates (creator only) and manage categories.
 // Close, reopen, delete, leave and export arrive in later milestones.
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Button, Icon, Text } from 'react-native-paper';
 
 import DateField from '@/components/DateField';
@@ -30,6 +30,27 @@ function InfoNote({ children }) {
         {children}
       </Text>
     </View>
+  );
+}
+
+function CategoriesLink({ tripId }) {
+  const theme = useAppTheme();
+  const router = useRouter();
+  return (
+    <Pressable
+      onPress={() => router.push(`/trips/${tripId}/categories`)}
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        styles.card,
+        styles.linkRow,
+        { backgroundColor: theme.app.card, borderColor: theme.app.border },
+        pressed && styles.pressed,
+      ]}
+    >
+      <Icon source="tag-multiple-outline" size={20} color={theme.app.muted} />
+      <Text style={styles.grow}>Categories</Text>
+      <Icon source="chevron-right" size={20} color={theme.app.muted} />
+    </Pressable>
   );
 }
 
@@ -72,6 +93,7 @@ export default function TripSettingsScreen() {
             {formatTripDates(trip.startDate, trip.endDate)}
           </Text>
         </View>
+        <CategoriesLink tripId={tripId} />
         <InfoNote>
           {isCreator
             ? 'This trip is closed, so its name and dates can’t be changed.'
@@ -120,6 +142,8 @@ export default function TripSettingsScreen() {
         The end date can’t be before the start date. Tap × to clear it.
       </Text>
 
+      <CategoriesLink tripId={tripId} />
+
       <InfoNote>Close trip, export PDF and delete trip arrive in later updates.</InfoNote>
 
       <Button mode="contained" onPress={save} style={styles.save}>
@@ -141,4 +165,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   save: { marginTop: 'auto' },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pressed: { opacity: 0.7 },
 });

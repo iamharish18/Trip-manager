@@ -3,7 +3,7 @@
 const MINUS = '−';
 
 // Groups digits the Indian way: last three, then pairs (1,00,000).
-function groupIndian(digits) {
+export function groupIndian(digits) {
   if (digits.length <= 3) return digits;
   const lastThree = digits.slice(-3);
   const rest = digits.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',');

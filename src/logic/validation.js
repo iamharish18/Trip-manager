@@ -2,6 +2,8 @@
 // Each function returns an error message, or null when the value is valid.
 
 import { isIsoDate } from './dates';
+import { formatRupees } from './format';
+import { DESCRIPTION_MAX, MAX_AMOUNT, parseAmount } from './money';
 
 export const NAME_MAX = 40;
 export const PASSWORD_MIN = 8;
@@ -68,6 +70,27 @@ export function validateParticipantName(name, otherNames = []) {
   const clash = otherNames.find((other) => sameName(other, name));
   if (clash) return `${clash.trim()} is already on this trip.`;
   return null;
+}
+
+// Expense amount as typed: whole rupees from ₹1 to ₹10,00,000.
+export function validateAmount(text) {
+  if (!(text ?? '').trim()) return 'Enter an amount.';
+  const amount = parseAmount(text);
+  if (amount === null) return 'Enter whole rupees only.';
+  if (amount < 1 || amount > MAX_AMOUNT) {
+    return `Enter an amount between ₹1 and ${formatRupees(MAX_AMOUNT)}.`;
+  }
+  return null;
+}
+
+export function validateDescription(description) {
+  return (description ?? '').trim().length > DESCRIPTION_MAX
+    ? `Use ${DESCRIPTION_MAX} characters or fewer.`
+    : null;
+}
+
+export function validateExpenseDate(date) {
+  return isIsoDate(date) ? null : 'Choose a date.';
 }
 
 // Returns { field: message } for every invalid field; empty when all are valid.

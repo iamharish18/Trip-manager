@@ -8,6 +8,7 @@ import { Button, Dialog, IconButton, Menu, Portal, Snackbar, Text } from 'react-
 import Avatar from '@/components/Avatar';
 import FormField from '@/components/FormField';
 import { describeError } from '@/logic/errors';
+import { expenseCountFor } from '@/logic/money';
 import { participantStatus, sortParticipants } from '@/logic/trips';
 import { MAX_PARTICIPANTS, validateParticipantName } from '@/logic/validation';
 import { addParticipant, removeParticipant, renameParticipant } from '@/services/trips';
@@ -50,7 +51,7 @@ function TripIdCard({ trip }) {
 export default function MembersTab() {
   const theme = useAppTheme();
   const { user } = useSession();
-  const { trip, tripId, participants, isCreator, isOpen } = useTrip();
+  const { trip, tripId, participants, expenses, isCreator, isOpen } = useTrip();
 
   const [menuFor, setMenuFor] = useState(null);
   // { mode: 'add' | 'rename', participant?, name, error }
@@ -82,13 +83,20 @@ export default function MembersTab() {
   }
 
   function confirmRemove() {
-    removeParticipant(tripId, removing.id).catch(reportFailure);
+    // Re-check: an expense may have been added since the menu opened.
+    if (expenseCountFor(removing.id, expenses) === 0) {
+      removeParticipant(tripId, removing.id).catch(reportFailure);
+    } else {
+      setNotice(`${removing.name} is in an expense now, so they can’t be removed.`);
+    }
     setRemoving(null);
   }
 
   function renderPerson({ item: person }) {
     const isMe = person.claimedByUid === user.uid;
     const isTripCreator = person.claimedByUid === trip.creatorUid;
+    // People in expenses can't be removed (SPEC §5).
+    const inExpenses = expenseCountFor(person.id, expenses);
     return (
       <View
         style={[styles.person, { backgroundColor: theme.app.card, borderColor: theme.app.border }]}
@@ -126,7 +134,14 @@ export default function MembersTab() {
                 setEditor({ mode: 'rename', participant: person, name: person.name, error: null });
               }}
             />
-            {!isTripCreator && !person.claimedByUid ? (
+            {!isTripCreator && !person.claimedByUid && inExpenses > 0 ? (
+              <Menu.Item
+                leadingIcon="lock-outline"
+                title={`Can’t remove: in ${inExpenses} expense${inExpenses === 1 ? '' : 's'}`}
+                disabled
+              />
+            ) : null}
+            {!isTripCreator && !person.claimedByUid && inExpenses === 0 ? (
               <Menu.Item
                 leadingIcon="delete-outline"
                 title="Remove"

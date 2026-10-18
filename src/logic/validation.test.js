@@ -1,6 +1,9 @@
 import {
   collectErrors,
   sameName,
+  validateAmount,
+  validateDescription,
+  validateExpenseDate,
   validateEmail,
   validateEndDate,
   validateLoginPassword,
@@ -10,6 +13,32 @@ import {
   validateStartDate,
   validateTripName,
 } from './validation';
+
+describe('validateAmount', () => {
+  it('requires whole rupees from ₹1 to ₹10,00,000', () => {
+    expect(validateAmount('')).toBe('Enter an amount.');
+    expect(validateAmount('12.5')).toBe('Enter whole rupees only.');
+    expect(validateAmount('0')).toBe('Enter an amount between ₹1 and ₹10,00,000.');
+    expect(validateAmount('10,00,001')).toBe('Enter an amount between ₹1 and ₹10,00,000.');
+    expect(validateAmount('1')).toBeNull();
+    expect(validateAmount('10,00,000')).toBeNull();
+  });
+});
+
+describe('validateDescription', () => {
+  it('allows empty and up to 100 characters', () => {
+    expect(validateDescription('')).toBeNull();
+    expect(validateDescription('a'.repeat(100))).toBeNull();
+    expect(validateDescription('a'.repeat(101))).toBe('Use 100 characters or fewer.');
+  });
+});
+
+describe('validateExpenseDate', () => {
+  it('requires a real date', () => {
+    expect(validateExpenseDate('2026-12-14')).toBeNull();
+    expect(validateExpenseDate(null)).toBe('Choose a date.');
+  });
+});
 
 describe('validateTripName', () => {
   it('requires 1–60 characters', () => {

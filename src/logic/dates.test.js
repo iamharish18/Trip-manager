@@ -1,4 +1,17 @@
-import { formatDate, formatTripDates, fromIsoDate, isIsoDate, toIsoDate } from './dates';
+import { dayLabel, formatDate, formatTripDates, fromIsoDate, isIsoDate, toIsoDate } from './dates';
+
+describe('dayLabel', () => {
+  it('says Today and Yesterday, otherwise the date', () => {
+    expect(dayLabel('2026-12-14', '2026-12-14')).toBe('Today');
+    expect(dayLabel('2026-12-13', '2026-12-14')).toBe('Yesterday');
+    expect(dayLabel('2026-12-12', '2026-12-14')).toBe('12 Dec 2026');
+  });
+
+  it('handles month and year boundaries', () => {
+    expect(dayLabel('2026-12-31', '2027-01-01')).toBe('Yesterday');
+    expect(dayLabel('2026-02-28', '2026-03-01')).toBe('Yesterday');
+  });
+});
 
 describe('isIsoDate', () => {
   it('accepts real calendar dates', () => {
