@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// Everything not matched below is denied.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // TEMPORARY (M0): anyone can read the connection-test document.
+    // Remove in M1 when real rules are added.
+    match /health/ping {
+      allow read: if true;
+    }
+  }
+}
