@@ -8,7 +8,7 @@ import Avatar from '@/components/Avatar';
 import FormField from '@/components/FormField';
 import Screen from '@/components/Screen';
 import ScreenHeader from '@/components/ScreenHeader';
-import { describeAuthError } from '@/logic/authErrors';
+import { describeError } from '@/logic/errors';
 import { validateName } from '@/logic/validation';
 import { logOut } from '@/services/auth';
 import { updateProfileName } from '@/services/users';
@@ -39,7 +39,7 @@ export default function AccountScreen() {
     // The screen updates right away from the local cache; this only fails
     // if the server rejects the change.
     updateProfileName(user.uid, draftName.trim()).catch((err) =>
-      setNotice(describeAuthError(err).message),
+      setNotice(describeError(err).message),
     );
   }
 

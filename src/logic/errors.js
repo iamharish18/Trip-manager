@@ -1,4 +1,4 @@
-// Turns Firebase error codes into plain-English messages for the UI.
+// Turns Firebase and app error codes into plain-English messages for the UI.
 // Returns { field, message }: field is 'email' or 'password' when the error
 // belongs under that input, or null for a general message.
 
@@ -30,10 +30,14 @@ const MESSAGES = {
     field: null,
     message: 'You don’t have permission to do that.',
   },
+  'trips/code-unavailable': {
+    field: null,
+    message: 'Couldn’t create a Trip ID. Try again.',
+  },
 };
 
 const FALLBACK = { field: null, message: 'Something went wrong. Try again.' };
 
-export function describeAuthError(error) {
+export function describeError(error) {
   return MESSAGES[error?.code] ?? FALLBACK;
 }

@@ -6,7 +6,7 @@ import { Button, Icon, Text } from 'react-native-paper';
 import FormField from '@/components/FormField';
 import FormMessage from '@/components/FormMessage';
 import Screen from '@/components/Screen';
-import { describeAuthError } from '@/logic/authErrors';
+import { describeError } from '@/logic/errors';
 import { collectErrors, validateEmail, validateLoginPassword } from '@/logic/validation';
 import { logIn } from '@/services/auth';
 import { useAppTheme } from '@/theme';
@@ -31,7 +31,7 @@ export default function LoginScreen() {
       await logIn({ email, password });
       // The session switches to Home automatically.
     } catch (error) {
-      const { field, message } = describeAuthError(error);
+      const { field, message } = describeError(error);
       setErrors({ [field ?? 'form']: message });
       setSubmitting(false);
     }

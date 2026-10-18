@@ -97,7 +97,16 @@ ACTIVE ──(creator closes)──► CLOSED ──(creator reopens, once)─�
 
 ## 5. Participants
 
+### Trips
+- **Creating a trip:** name (1–60 characters), a required **start date**, an optional **end date** (on or after the start date), and the participants' names. The creator is added automatically using their account name. **Requires internet**, because the Trip ID is reserved on the server.
+- **Trip ID:** 6 characters from `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (no look-alikes such as 0/O or 1/I/L). Each code is reserved once in `joinCodes/{code}`; on a clash the app picks another.
+- **Editing:** only the creator can edit the trip name and dates.
+- **Dates display:** "From 12 Dec 2026" without an end date; "12 – 16 Dec 2026" with one.
+
+### People on a trip
 - The creator adds participants by name at trip creation or later, while the trip is Active or Reopened.
+- Names are **unique within a trip, ignoring capitals** ("rahul" = "Rahul"), 1–40 characters each, at most **20 people** per trip.
+- Only the creator can add, rename and remove participants. The creator can rename themselves; the creator's own participant cannot be removed.
 - **Claiming:** a user signs up, enters the Trip ID, and picks an unclaimed name. That name is linked to their account, and all past expenses under that name are now theirs.
 - The creator can **rename** any participant.
 - The creator can **remove** a participant only if that participant is not part of any expense (as payer or in a split).
@@ -148,6 +157,7 @@ Payer's share          = base + remainder
 - The creator or any member can **add custom categories** to a trip (while it is Active or Reopened).
 - Custom categories are **per trip**.
 - A custom category can be deleted only if no expense uses it. Default categories cannot be deleted.
+- **Storage:** default categories are defined in the app's code with fixed IDs (`food`, `stay`, `travel`, `activities`, `shopping`, `other`); only custom categories are stored, in `trips/{tripId}/categories`.
 
 ---
 
@@ -228,7 +238,7 @@ Example:
 - The dashboard shows a **sync indicator**: Online · Offline · Pending changes.
 - Conflicting edits: latest edit wins.
 - Writes rejected by the server (trip locked) show a clear message to the user.
-- Actions that **require being online:** sign up / log in, join trip (claim), close trip, reopen trip, delete trip.
+- Actions that **require being online:** sign up / log in, create trip, join trip (claim), close trip, reopen trip, delete trip.
 
 ---
 
@@ -245,10 +255,14 @@ Example:
 users/{uid}
   name, email, pushToken, createdAt
 
+joinCodes/{code}
+  tripId                // reserved once, never changed
+
 trips/{tripId}
-  name, startDate, endDate
-  creatorUid
-  joinCode              // short shareable code, e.g. "GOA7K2"; invalid after first close
+  name
+  startDate, endDate    // "YYYY-MM-DD" strings; endDate may be null
+  creatorUid, createdAt
+  joinCode              // short shareable code, e.g. "GQA7K2"; invalid after first close
   status                // active | closed | reopened | final
   reopenUsed            // bool
   reopenedAt, closedAt
@@ -260,8 +274,8 @@ trips/{tripId}/participants/{pid}
   leftAt                // set if member left
   addedAt
 
-trips/{tripId}/categories/{cid}
-  name, isDefault, createdByUid
+trips/{tripId}/categories/{cid}     // custom categories only
+  name, createdByUid
 
 trips/{tripId}/expenses/{eid}
   amount                // integer rupees

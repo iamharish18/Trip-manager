@@ -12,12 +12,21 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
-    // 1–40 characters, no leading or trailing spaces.
-    function validName(name) {
-      return name is string && name.size() >= 1 && name.size() <= 40 && name.trim() == name;
+    // 1–max characters, no leading or trailing spaces.
+    function validText(value, max) {
+      return value is string && value.size() >= 1 && value.size() <= max && value.trim() == value;
     }
 
-    // SPEC §3.1: users read and write only their own profile.
+    function validName(name) {
+      return validText(name, 40);
+    }
+
+    function isIsoDate(value) {
+      return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    // ---- Users (SPEC §3.1) ----------------------------------------------
+
     match /users/{uid} {
       allow read: if isOwner(uid);
 
@@ -34,6 +43,100 @@ service cloud.firestore {
         && validName(request.resource.data.name);
 
       allow delete: if false;
+    }
+
+    // ---- Trip IDs (SPEC §5) ---------------------------------------------
+
+    // Reserved once, together with the trip that uses it; never changed.
+    match /joinCodes/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['tripId'])
+        && getAfter(/databases/$(database)/documents/trips/$(request.resource.data.tripId)).data.creatorUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/trips/$(request.resource.data.tripId)).data.joinCode == code;
+      allow list, update, delete: if false;
+    }
+
+    // ---- Trips (SPEC §4, §5) --------------------------------------------
+
+    function tripPath(tripId) {
+      return /databases/$(database)/documents/trips/$(tripId);
+    }
+
+    function validTripDates(data) {
+      return isIsoDate(data.startDate)
+        && (data.endDate == null || (isIsoDate(data.endDate) && data.endDate >= data.startDate));
+    }
+
+    function editable(trip) {
+      return trip.data.status in ['active', 'reopened'];
+    }
+
+    match /trips/{tripId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
+
+      // Created in one transaction with its Trip ID and participants.
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(
+             ['name', 'startDate', 'endDate', 'creatorUid', 'memberUids', 'status', 'joinCode', 'createdAt'])
+        && request.resource.data.keys().hasAll(
+             ['name', 'startDate', 'endDate', 'creatorUid', 'memberUids', 'status', 'joinCode', 'createdAt'])
+        && request.resource.data.creatorUid == request.auth.uid
+        && request.resource.data.memberUids == [request.auth.uid]
+        && request.resource.data.status == 'active'
+        && validText(request.resource.data.name, 60)
+        && validTripDates(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/joinCodes/$(request.resource.data.joinCode)).data.tripId == tripId;
+
+      // Only the creator edits the name and dates, while the trip is open.
+      allow update: if signedIn()
+        && resource.data.creatorUid == request.auth.uid
+        && editable(resource)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'startDate', 'endDate'])
+        && validText(request.resource.data.name, 60)
+        && validTripDates(request.resource.data);
+
+      allow delete: if false;
+
+      // ---- Participants (SPEC §5) ----
+
+      match /participants/{pid} {
+        function trip() {
+          return get(tripPath(tripId));
+        }
+
+        function tripAfter() {
+          return getAfter(tripPath(tripId));
+        }
+
+        allow read: if signedIn() && request.auth.uid in trip().data.memberUids;
+
+        // The creator adds people while the trip is open. Only during trip
+        // creation may a participant be claimed (by the creator, for themself).
+        allow create: if signedIn()
+          && tripAfter().data.creatorUid == request.auth.uid
+          && editable(tripAfter())
+          && request.resource.data.keys().hasOnly(['name', 'claimedByUid', 'addedAt'])
+          && request.resource.data.keys().hasAll(['name', 'claimedByUid', 'addedAt'])
+          && validName(request.resource.data.name)
+          && request.resource.data.addedAt == request.time
+          && (request.resource.data.claimedByUid == null
+              || (request.resource.data.claimedByUid == request.auth.uid && !exists(tripPath(tripId))));
+
+        // The creator renames anyone, including themself.
+        allow update: if signedIn()
+          && trip().data.creatorUid == request.auth.uid
+          && editable(trip())
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+          && validName(request.resource.data.name);
+
+        // The creator removes people who haven't claimed their spot.
+        allow delete: if signedIn()
+          && trip().data.creatorUid == request.auth.uid
+          && editable(trip())
+          && resource.data.claimedByUid == null;
+      }
     }
   }
 }

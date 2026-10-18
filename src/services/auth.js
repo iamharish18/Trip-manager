@@ -1,5 +1,5 @@
 // Account actions (SPEC §3.1). Errors are Firebase errors with a `code`;
-// screens turn them into messages with describeAuthError.
+// screens turn them into messages with describeError.
 
 import {
   createUserWithEmailAndPassword,
