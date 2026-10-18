@@ -9,31 +9,39 @@
     "lint": "expo lint",
     "format": "prettier --write .",
     "test": "jest",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-trip-manager \"jest -c jest.rules.config.js\"",
     "emulators": "firebase emulators:start",
     "build:dev": "eas build --profile development --platform android"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
     "@react-native-firebase/app": "^26.4.0",
     "@react-native-firebase/auth": "^26.4.0",
     "@react-native-firebase/firestore": "^26.4.0",
     "expo": "~58.0.14",
+    "expo-asset": "~58.0.16",
     "expo-build-properties": "~58.0.11",
     "expo-constants": "~58.0.12",
     "expo-dev-client": "~58.0.14",
+    "expo-font": "~58.0.8",
     "expo-linking": "~58.0.13",
     "expo-router": "~58.0.23",
     "expo-status-bar": "~58.0.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.0",
+    "react-native-paper": "^5.15.3",
     "react-native-safe-area-context": "~5.10.1",
     "react-native-screens": "~4.30.0"
   },
   "devDependencies": {
     "@expo/ngrok": "^4.1.0",
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@testing-library/react-native": "^14.1.0",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~58.0.4",
     "eslint-config-prettier": "^10.1.8",
+    "firebase": "^13.0.0",
     "globals": "^16.5.0",
     "jest": "~30.5.2",
     "jest-expo": "~58.0.11",
@@ -41,6 +49,13 @@
   },
   "jest": {
     "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/firebase/"
+    ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1"
     }

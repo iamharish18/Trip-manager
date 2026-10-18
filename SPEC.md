@@ -27,6 +27,8 @@ A mobile app where a group tracks shared trip expenses. One person creates a tri
 - Budget and budget alerts
 - Receipt photos
 - Notifications for anything other than new expenses
+- Email verification
+- Deleting your account
 
 ---
 
@@ -54,6 +56,14 @@ A mobile app where a group tracks shared trip expenses. One person creates a tri
 | **Creator** | User who created the trip. Has all member rights plus admin actions. Cannot leave the trip (can only delete it). |
 | **Member** | A participant who has claimed a name with their account. |
 | **Placeholder** | A name-only participant without an account (never claimed, or the member left). |
+
+### 3.1 Accounts
+- **Sign up:** name (1–40 characters), email and password (at least 8 characters). No email verification; new users go straight into the app.
+- **Log in / log out:** email and password. The session is remembered on the phone, so the app opens straight to Home, even offline.
+- **Forgot password:** Firebase emails a reset link. The confirmation never reveals whether an email has an account.
+- **Profile:** `users/{uid}` holds name, email and createdAt. Users can edit their own name; email and createdAt never change. Users can read and write only their own profile.
+- The account name is separate from the name a user claims on each trip.
+- Signing up, logging in and resetting a password require internet.
 
 ---
 
@@ -345,8 +355,10 @@ A **sync indicator** sits in the trip's top bar: synced (cloud with check), offl
 
 | # | Screen | Contents |
 |---|---|---|
-| 1 | **Log in / Sign up** | App logo; email, password (+ name on sign up); switch link between the two |
-| 2 | **Home** | Trip cards: icon, name, dates, number of people, status badge (Active / Reopened / Closed), total, your balance. Buttons: Create trip, Join trip |
+| 1 | **Log in / Sign up** | App logo; email, password with show/hide (+ name on sign up); switch link between the two; "Forgot password?" link on Log in. Errors shown under the field they belong to |
+| 1a | **Forgot password** | Email field, "Send reset link", neutral confirmation, back to Log in |
+| 2 | **Home** | Trip cards: icon, name, dates, number of people, status badge (Active / Reopened / Closed), total, your balance. Avatar (top right) opens Account. Buttons: Create trip, Join trip |
+| 2a | **Account** | Initial avatar, name (editable), email, note that trip names are set per trip, Log out |
 | 3 | **Create trip** | Name, start and end dates, participant list (creator added automatically as "You"), "Add a name" field |
 | 4 | **Join trip** | Trip ID field → trip preview (name, creator, dates) → "Which one is you?" list. Claimed names greyed out as "Already joined". Button: "Join as {name}" |
 | 5 | **Expenses tab** | Summary card (total spent, your position); expenses grouped by date with category icon, description, who paid, comment count, amount; floating + button (hidden when locked) |
