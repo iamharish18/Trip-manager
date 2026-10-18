@@ -70,6 +70,13 @@ jest.mock('@/services/trips', () => ({
     return () => {};
   },
 }));
+let mockComments = [];
+jest.mock('@/services/comments', () => ({
+  subscribeToComments: (tripId, onChange) => {
+    onChange(tripId === 't1' ? mockComments : []);
+    return () => {};
+  },
+}));
 jest.mock('@/services/expenses', () => ({
   subscribeToExpenses: (tripId, onChange) => {
     onChange(tripId === 't1' ? mockExpenses : []);
@@ -113,6 +120,7 @@ describe('when logged in', () => {
   beforeEach(() => {
     mockSession = LOGGED_IN;
     mockExpenses = [];
+    mockComments = [];
   });
 
   it('opens on Home with the trip list', async () => {
@@ -214,6 +222,47 @@ describe('when logged in', () => {
     expect(screen.getByText('25%')).toBeTruthy();
     expect(screen.getByText('Food')).toBeTruthy();
     expect(screen.getByText('Travel')).toBeTruthy();
+  });
+
+  it('shows comments on an expense, with Sending… for unsynced ones', async () => {
+    mockExpenses = [cabExpense];
+    const at = (date) => ({ toMillis: () => date.getTime(), toDate: () => date });
+    mockComments = [
+      {
+        id: 'c1',
+        expenseId: 'e1',
+        text: 'Was this including tip?',
+        authorUid: 'u2',
+        authorPid: 'p2',
+        createdAt: at(new Date(2026, 11, 14, 21, 42)),
+        pending: false,
+      },
+      {
+        id: 'c2',
+        expenseId: 'e1',
+        text: 'Yes, ₹200 tip',
+        authorUid: 'u1',
+        authorPid: 'p1',
+        createdAt: null,
+        pending: true,
+      },
+    ];
+    await renderRouter('./src/app', { initialUrl: '/trips/t1/expenses/e1' });
+    expect(screen.getByText('Was this including tip?')).toBeTruthy();
+    expect(screen.getByText('You · Sending…')).toBeTruthy();
+    expect(screen.getByLabelText('Comment')).toBeTruthy();
+    // Only your own comment can be deleted.
+    expect(screen.getAllByLabelText('Delete comment')).toHaveLength(1);
+  });
+
+  it('shows comment counts on the Expenses list', async () => {
+    mockExpenses = [cabExpense];
+    mockComments = [
+      { id: 'c1', expenseId: 'e1', text: 'a', authorUid: 'u1', authorPid: 'p1' },
+      { id: 'c2', expenseId: 'e1', text: 'b', authorUid: 'u1', authorPid: 'p1' },
+    ];
+    await renderRouter('./src/app', { initialUrl: '/trips/t1' });
+    expect(screen.getByText('You paid · 2 comments')).toBeTruthy();
   });
 
   it('opens Join trip from its route', async () => {

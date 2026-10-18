@@ -1,4 +1,4 @@
-// Expense detail: what, who paid, and how it's split. Comments arrive in M6.
+// Expense detail: what, who paid, how it's split, and comments.
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -6,6 +6,7 @@ import { IconButton, Text } from 'react-native-paper';
 
 import Avatar from '@/components/Avatar';
 import CategoryIcon from '@/components/CategoryIcon';
+import CommentsSection from '@/components/CommentsSection';
 import ComingSoon from '@/components/ComingSoon';
 import FormScreen from '@/components/FormScreen';
 import { findCategory } from '@/logic/categories';
@@ -68,7 +69,7 @@ export default function ExpenseDetailScreen() {
 
   return (
     <FormScreen title="Expense" right={actions}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.heading}>
           <CategoryIcon category={category} size={44} />
           <View style={styles.grow}>
@@ -111,9 +112,7 @@ export default function ExpenseDetailScreen() {
           })}
         </View>
 
-        <Text variant="bodySmall" style={[styles.later, { color: theme.app.muted }]}>
-          Comments are coming soon.
-        </Text>
+        <CommentsSection expenseId={expense.id} />
       </ScrollView>
     </FormScreen>
   );
@@ -128,5 +127,4 @@ const styles = StyleSheet.create({
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 12, gap: 10 },
   cardTitle: { marginBottom: 2 },
   shareRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  later: { textAlign: 'center', marginTop: 16 },
 });

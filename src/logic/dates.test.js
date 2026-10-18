@@ -1,4 +1,31 @@
-import { dayLabel, formatDate, formatTripDates, fromIsoDate, isIsoDate, toIsoDate } from './dates';
+import {
+  dayLabel,
+  formatCommentTime,
+  formatDate,
+  formatTripDates,
+  fromIsoDate,
+  isIsoDate,
+  toIsoDate,
+} from './dates';
+
+describe('formatCommentTime', () => {
+  const now = new Date(2026, 11, 14, 22, 0);
+
+  it('shows only the time for today', () => {
+    expect(formatCommentTime(new Date(2026, 11, 14, 21, 42), now)).toBe('9:42 pm');
+    expect(formatCommentTime(new Date(2026, 11, 14, 0, 5), now)).toBe('12:05 am');
+    expect(formatCommentTime(new Date(2026, 11, 14, 12, 0), now)).toBe('12:00 pm');
+  });
+
+  it('says Yesterday', () => {
+    expect(formatCommentTime(new Date(2026, 11, 13, 9, 7), now)).toBe('Yesterday, 9:07 am');
+  });
+
+  it('shows day and month earlier this year, and the year before that', () => {
+    expect(formatCommentTime(new Date(2026, 11, 1, 18, 30), now)).toBe('1 Dec, 6:30 pm');
+    expect(formatCommentTime(new Date(2025, 11, 31, 23, 59), now)).toBe('31 Dec 2025, 11:59 pm');
+  });
+});
 
 describe('dayLabel', () => {
   it('says Today and Yesterday, otherwise the date', () => {
