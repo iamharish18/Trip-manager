@@ -99,18 +99,22 @@ service cloud.firestore {
 
       allow delete: if false;
 
+      function trip() {
+        return get(tripPath(tripId));
+      }
+
+      function tripAfter() {
+        return getAfter(tripPath(tripId));
+      }
+
+      function isMember() {
+        return signedIn() && request.auth.uid in trip().data.memberUids;
+      }
+
       // ---- Participants (SPEC §5) ----
 
       match /participants/{pid} {
-        function trip() {
-          return get(tripPath(tripId));
-        }
-
-        function tripAfter() {
-          return getAfter(tripPath(tripId));
-        }
-
-        allow read: if signedIn() && request.auth.uid in trip().data.memberUids;
+        allow read: if isMember();
 
         // The creator adds people while the trip is open. Only during trip
         // creation may a participant be claimed (by the creator, for themself).
@@ -132,10 +136,87 @@ service cloud.firestore {
           && validName(request.resource.data.name);
 
         // The creator removes people who haven't claimed their spot.
+        // (The app also blocks removing anyone who is in an expense.)
         allow delete: if signedIn()
           && trip().data.creatorUid == request.auth.uid
           && editable(trip())
           && resource.data.claimedByUid == null;
+      }
+
+      // ---- Custom categories (SPEC §7) ----
+
+      match /categories/{cid} {
+        allow read: if isMember();
+
+        // Default IDs are reserved; names are checked for clashes in the app.
+        allow create: if isMember()
+          && editable(trip())
+          && !(cid in ['food', 'stay', 'travel', 'activities', 'shopping', 'other'])
+          && request.resource.data.keys().hasOnly(['name', 'createdByUid', 'createdAt'])
+          && request.resource.data.keys().hasAll(['name', 'createdByUid', 'createdAt'])
+          && validText(request.resource.data.name, 20)
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time;
+
+        // The app only deletes categories that no expense uses.
+        allow delete: if isMember() && editable(trip());
+
+        allow update: if false;
+      }
+
+      // ---- Expenses (SPEC §6) ----
+
+      function validCategory(categoryId) {
+        return categoryId is string
+          && (categoryId in ['food', 'stay', 'travel', 'activities', 'shopping', 'other']
+              || exists(/databases/$(database)/documents/trips/$(tripId)/categories/$(categoryId)));
+      }
+
+      function validExpense(data) {
+        return data.amount is int
+          && data.amount >= 1
+          && data.amount <= 1000000
+          && data.paidByPid is string
+          && data.paidByPid in data.splitAmongPids
+          && validCategory(data.categoryId)
+          && isIsoDate(data.date)
+          && data.description is string
+          && data.description.size() <= 100
+          && data.description.trim() == data.description
+          && data.isDeleted is bool;
+      }
+
+      match /expenses/{eid} {
+        allow read: if isMember();
+
+        allow create: if isMember()
+          && editable(trip())
+          && request.resource.data.keys().hasOnly(
+               ['amount', 'paidByPid', 'categoryId', 'date', 'description', 'splitAmongPids',
+                'createdByUid', 'createdAt', 'updatedAt', 'isDeleted'])
+          && request.resource.data.keys().hasAll(
+               ['amount', 'paidByPid', 'categoryId', 'date', 'description', 'splitAmongPids',
+                'createdByUid', 'createdAt', 'updatedAt', 'isDeleted'])
+          && validExpense(request.resource.data)
+          && request.resource.data.splitAmongPids is list
+          && request.resource.data.splitAmongPids.size() >= 1
+          && request.resource.data.splitAmongPids.size() <= 20
+          && exists(/databases/$(database)/documents/trips/$(tripId)/participants/$(request.resource.data.paidByPid))
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.isDeleted == false;
+
+        // The split list, creator and creation time never change.
+        allow update: if isMember()
+          && editable(trip())
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+               ['amount', 'paidByPid', 'categoryId', 'date', 'description', 'updatedAt', 'isDeleted'])
+          && validExpense(request.resource.data)
+          && request.resource.data.updatedAt == request.time;
+
+        // Deleting is a soft delete (isDeleted), never a real one.
+        allow delete: if false;
       }
     }
   }

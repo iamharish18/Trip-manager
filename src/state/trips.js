@@ -3,7 +3,9 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 
+import { activeExpenses } from '@/logic/money';
 import { isTripOpen } from '@/logic/trips';
+import { subscribeToCategories, subscribeToExpenses } from '@/services/expenses';
 import { subscribeToMyTrips, subscribeToParticipants, subscribeToTrip } from '@/services/trips';
 import { useSession } from '@/state/session';
 
@@ -48,17 +50,36 @@ export function TripProvider({ tripId, children }) {
   const { user } = useSession();
   const tripState = useKeyedSubscription(tripId, subscribeToTrip);
   const { participants } = useParticipants(tripId);
+  const expensesState = useKeyedSubscription(tripId, subscribeToExpenses);
+  const categoriesState = useKeyedSubscription(tripId, subscribeToCategories);
+  // The last deleted expense, offered for Undo on the Expenses tab.
+  const [deletedExpenseId, setDeletedExpenseId] = useState(null);
 
   const trip = tripState.value ?? null;
+  const allExpenses = expensesState.value ?? [];
+  const isOpen = isTripOpen(trip);
+  const isMember = Boolean(trip && user && trip.memberUids?.includes(user.uid));
+
   const value = {
     tripId,
     trip,
     participants,
+    // Includes soft-deleted ones (needed for Undo); use `expenses` for display.
+    allExpenses,
+    expenses: activeExpenses(allExpenses),
+    expensesLoading: expensesState.isLoading,
+    customCategories: categoriesState.value ?? [],
+    // Your own spot on the trip, if you've claimed one.
+    me: participants.find((p) => user && p.claimedByUid === user.uid) ?? null,
     isLoading: tripState.isLoading,
     // Missing, or no longer readable (e.g. removed from the trip).
     notFound: !tripState.isLoading && !trip,
     isCreator: Boolean(trip && user && trip.creatorUid === user.uid),
-    isOpen: isTripOpen(trip),
+    isOpen,
+    // Can add, edit and delete expenses and categories (SPEC §6).
+    canWrite: isOpen && isMember,
+    deletedExpenseId,
+    setDeletedExpenseId,
   };
 
   return <TripContext.Provider value={value}>{children}</TripContext.Provider>;

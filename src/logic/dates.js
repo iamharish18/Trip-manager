@@ -39,6 +39,19 @@ export function formatDate(iso) {
   return p ? `${p.day} ${MONTHS[p.month - 1]} ${p.year}` : '';
 }
 
+export function todayIso() {
+  return toIsoDate(new Date());
+}
+
+// "Today", "Yesterday", or "14 Dec 2026", for grouping expenses by day.
+export function dayLabel(iso, today = todayIso()) {
+  if (iso === today) return 'Today';
+  const yesterday = fromIsoDate(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (iso === toIsoDate(yesterday)) return 'Yesterday';
+  return formatDate(iso);
+}
+
 // "From 12 Dec 2026", "12 – 16 Dec 2026", "28 Nov – 3 Dec 2026",
 // or "28 Dec 2026 – 3 Jan 2027".
 export function formatTripDates(startIso, endIso) {

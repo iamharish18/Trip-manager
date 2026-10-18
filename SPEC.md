@@ -126,16 +126,20 @@ ACTIVE ──(creator closes)──► CLOSED ──(creator reopens, once)─�
 
 | Field | Rules |
 |---|---|
-| Amount | Whole rupees only (integer > 0) |
-| Paid by | Exactly one participant (claimed or placeholder) |
-| Category | One from the trip's category list |
-| Date | Defaults to today |
-| Description | Free text |
+| Amount | Whole rupees, ₹1 to ₹10,00,000 |
+| Paid by | Exactly one participant (claimed or placeholder), who must be in the expense's split |
+| Category | A default category or one of the trip's custom categories |
+| Date | Any date; defaults to today |
+| Description | Optional, up to 100 characters. When empty, lists show the category name |
 
 - **Who can add / edit / delete:** the creator and any claimed member, only while the trip is Active or Reopened.
 - **Split:** equally among the participants on the trip **at the moment the expense is created**. This list is saved with the expense and does not change when participants are added later.
+- **Editing:** amount, category, description and date can change; "Paid by" can change to anyone within that expense's split; the split list never changes.
 - **Conflicts:** the latest edit wins.
-- **Deletion:** a soft delete internally (`isDeleted = true`), so an offline delete and an offline edit resolve cleanly. To the user the expense simply disappears.
+- **Deletion:** a soft delete internally (`isDeleted = true`), so an offline delete and an offline edit resolve cleanly. To the user the expense simply disappears. An **Undo** message appears for about 5 seconds.
+- **Offline:** adding, editing and deleting expenses works offline and syncs later.
+- **Removing a person** (SPEC §5) is blocked while they paid for or share in any non-deleted expense.
+- **Your position** ("You're owed ₹X" / "You owe ₹X") is shown on the Expenses tab.
 
 ### Rounding rule
 All amounts are whole rupees; no decimals are shown anywhere.
@@ -157,6 +161,8 @@ Payer's share          = base + remainder
 - The creator or any member can **add custom categories** to a trip (while it is Active or Reopened).
 - Custom categories are **per trip**.
 - A custom category can be deleted only if no expense uses it. Default categories cannot be deleted.
+- **Custom category names:** 1–20 characters, unique ignoring capitals, and different from the default names.
+- Custom categories are added from the "+ New" chip on Add expense or from Trip settings → Categories, and deleted only from Trip settings → Categories. They use a generic tag icon and the next colour from a fixed palette.
 - **Storage:** default categories are defined in the app's code with fixed IDs (`food`, `stay`, `travel`, `activities`, `shopping`, `other`); only custom categories are stored, in `trips/{tripId}/categories`.
 
 ---

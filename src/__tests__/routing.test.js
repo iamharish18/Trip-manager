@@ -19,6 +19,19 @@ const mockParticipants = [
   { id: 'p1', name: 'Rahul', claimedByUid: 'u1', addedAt: null },
   { id: 'p2', name: 'Amit', claimedByUid: null, addedAt: null },
 ];
+let mockExpenses = [];
+const mockCategories = [{ id: 'c-fuel', name: 'Fuel', createdAt: null }];
+const cabExpense = {
+  id: 'e1',
+  amount: 1201,
+  paidByPid: 'p1',
+  categoryId: 'travel',
+  date: '2026-12-14',
+  description: 'Cab to Baga',
+  splitAmongPids: ['p1', 'p2'],
+  createdAt: null,
+  isDeleted: false,
+};
 
 jest.mock('@/state/session', () => ({
   SessionProvider: ({ children }) => children,
@@ -38,6 +51,16 @@ jest.mock('@/services/trips', () => ({
   },
   subscribeToParticipants: (tripId, onChange) => {
     onChange(tripId === 't1' ? mockParticipants : []);
+    return () => {};
+  },
+}));
+jest.mock('@/services/expenses', () => ({
+  subscribeToExpenses: (tripId, onChange) => {
+    onChange(tripId === 't1' ? mockExpenses : []);
+    return () => {};
+  },
+  subscribeToCategories: (tripId, onChange) => {
+    onChange(tripId === 't1' ? mockCategories : []);
     return () => {};
   },
 }));
@@ -73,6 +96,7 @@ describe('when logged out', () => {
 describe('when logged in', () => {
   beforeEach(() => {
     mockSession = LOGGED_IN;
+    mockExpenses = [];
   });
 
   it('opens on Home with the trip list', async () => {
@@ -103,9 +127,43 @@ describe('when logged in', () => {
     expect(screen.getByText('Add person')).toBeTruthy();
   });
 
-  it('opens a trip on the Expenses placeholder', async () => {
+  it('opens a trip on the Expenses tab, empty at first', async () => {
     await renderRouter('./src/app', { initialUrl: '/trips/t1' });
-    expect(screen.getByText('Expenses are coming soon')).toBeTruthy();
+    expect(screen.getByText('No expenses yet')).toBeTruthy();
+    expect(screen.getByLabelText('Add expense')).toBeTruthy();
+  });
+
+  it('lists expenses with the total and your position', async () => {
+    mockExpenses = [cabExpense, { ...cabExpense, id: 'e2', amount: 500, isDeleted: true }];
+    await renderRouter('./src/app', { initialUrl: '/trips/t1' });
+    expect(screen.getByText('Cab to Baga')).toBeTruthy();
+    expect(screen.getByText('You paid')).toBeTruthy();
+    // ₹1,201 split between 2: Rahul (payer) ₹601, Amit ₹600. Deleted ₹500 ignored.
+    expect(screen.getAllByText('₹1,201').length).toBeGreaterThan(0);
+    expect(screen.getByText('You’re owed ₹600')).toBeTruthy();
+  });
+
+  it('opens Add expense with the split preview', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t1/expenses/new' });
+    expect(screen.getByText('Split equally among 2')).toBeTruthy();
+    expect(screen.getByText('Fuel')).toBeTruthy();
+  });
+
+  it('shows an expense with its split', async () => {
+    mockExpenses = [cabExpense];
+    await renderRouter('./src/app', { initialUrl: '/trips/t1/expenses/e1' });
+    expect(screen.getByText('Split equally among 2')).toBeTruthy();
+    expect(screen.getByText('₹601')).toBeTruthy();
+    expect(screen.getByText('₹600')).toBeTruthy();
+    expect(screen.getByLabelText('Delete expense')).toBeTruthy();
+  });
+
+  it('shows categories with how often each is used', async () => {
+    mockExpenses = [{ ...cabExpense, categoryId: 'c-fuel' }];
+    await renderRouter('./src/app', { initialUrl: '/trips/t1/categories' });
+    expect(screen.getByText('Fuel')).toBeTruthy();
+    expect(screen.getByText('Used in 1 expense')).toBeTruthy();
+    expect(screen.getByLabelText("Fuel can't be deleted")).toBeTruthy();
   });
 
   it('explains when a trip is not available', async () => {
