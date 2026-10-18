@@ -11,8 +11,8 @@
 | M1 | Accounts and Home | ✅ Done | [#2](https://github.com/iamharish18/Trip-manager/pull/2) |
 | M2 | Trips and participants | ✅ Done | [#3](https://github.com/iamharish18/Trip-manager/pull/3) |
 | M3 | Expenses and core logic | ✅ Done | [#4](https://github.com/iamharish18/Trip-manager/pull/4) |
-| M4 | Balances and insights | 🧪 Built, testing on phone | — |
-| M5 | Multi-user: join, claim, leave | ⏳ Not started | — |
+| M4 | Balances and insights | ✅ Done | [#5](https://github.com/iamharish18/Trip-manager/pull/5) |
+| M5 | Multi-user: join, claim, leave | ⏭️ Next | — |
 | M6 | Comments | ⏳ Not started | — |
 | M7 | Notifications | ⏳ Not started | — |
 | M8 | Trip lifecycle and settlements | ⏳ Not started | — |
