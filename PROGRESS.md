@@ -13,8 +13,8 @@
 | M3 | Expenses and core logic | ✅ Done | [#4](https://github.com/iamharish18/Trip-manager/pull/4) |
 | M4 | Balances and insights | ✅ Done | [#5](https://github.com/iamharish18/Trip-manager/pull/5) |
 | M5 | Multi-user: join, claim, leave | ✅ Done | [#6](https://github.com/iamharish18/Trip-manager/pull/6) |
-| M6 | Comments | 🧪 Built, testing on phone | — |
-| M7 | Notifications | ⏳ Not started | — |
+| M6 | Comments | ✅ Done | [#7](https://github.com/iamharish18/Trip-manager/pull/7) |
+| M7 | Notifications | ⏭️ Next | — |
 | M8 | Trip lifecycle and settlements | ⏳ Not started | — |
 | M9 | Offline hardening | ⏳ Not started | — |
 | M10 | PDF export and trip deletion | ⏳ Not started | — |
