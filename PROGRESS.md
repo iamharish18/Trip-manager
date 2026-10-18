@@ -112,6 +112,7 @@ firebase deploy --only firestore:rules --project trip-manager-a75e6
 | Problem | Fix |
 |---|---|
 | Phone: **"Failed to open app"** / **"Host unreachable"** | The dev server isn't running or its tunnel is stale. Restart `npm start` and scan the new QR code. |
+| Dev server stops right after starting with **`getaddrinfo ENOTFOUND …on.expo.app`** | A DNS timing blip with the brand-new tunnel address. Start it again and scan the new QR code. |
 | Phone: **"Unmatched Route"** | A routing bug. Fixed in M1 with a start route at `/`; the routing tests guard against it. |
 | `npm run test:rules` says Java is too old | `JAVA_HOME` must point to JDK 21 (`C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot`). |
 | Rules tests fail only when run together | They share one emulator, so they must run one file at a time (`maxWorkers: 1` in `jest.rules.config.js`). |
