@@ -24,6 +24,11 @@ export function updateProfileName(uid, name) {
   return updateDoc(profileRef(uid), { name });
 }
 
+// The Account screen's Notifications switch (SPEC §11). Works offline.
+export function setNotificationsOff(uid, off) {
+  return updateDoc(profileRef(uid), { notificationsOff: off });
+}
+
 // Calls onChange with the profile data, or null if missing or unreadable.
 // Returns the unsubscribe function.
 export function subscribeToProfile(uid, onChange) {

@@ -14,8 +14,8 @@
 | M4 | Balances and insights | ✅ Done | [#5](https://github.com/iamharish18/Trip-manager/pull/5) |
 | M5 | Multi-user: join, claim, leave | ✅ Done | [#6](https://github.com/iamharish18/Trip-manager/pull/6) |
 | M6 | Comments | ✅ Done | [#7](https://github.com/iamharish18/Trip-manager/pull/7) |
-| M7 | Notifications | ⏭️ Next | — |
-| M8 | Trip lifecycle and settlements | ⏳ Not started | — |
+| M7 | Notifications | ✅ Done | [#8](https://github.com/iamharish18/Trip-manager/pull/8) |
+| M8 | Trip lifecycle and settlements | ⏭️ Next | — |
 | M9 | Offline hardening | ⏳ Not started | — |
 | M10 | PDF export and trip deletion | ⏳ Not started | — |
 | M11 | Polish and release | ⏳ Not started | — |
@@ -77,6 +77,13 @@ Decisions agreed in discussion, by milestone. SPEC.md holds the full rules; this
 - Offline comments show "Sending…" until synced; counts show on the Expenses list.
 - Stored in one comments list per trip (not inside each expense), so counts need a single listener.
 
+### M7 — Notifications
+- Free plan: the phone that adds an expense sends the push via Expo's push service; no server.
+- Push addresses are stored per trip (`pushTokens`), visible only to that trip's members.
+- Each expense notifies at most once (`notifyPending`); missed ones are sent the next time the adder opens the app online.
+- **On by default:** Android's permission prompt appears right after login (no in-app card). Account has an on/off switch; tap opens the expense; banners show while the app is open.
+- **Needs a new dev build** (expo-notifications) and **FCM V1 credentials uploaded to EAS** (one-time; see "Push notification credentials" below).
+
 ---
 
 ## Running the app
@@ -116,6 +123,14 @@ After changing `firebase/firestore.rules` and running `npm run test:rules`:
 ```bash
 firebase deploy --only firestore:rules --project trip-manager-a75e6
 ```
+
+## Push notification credentials (one-time, M7)
+
+Android notifications go through Firebase Cloud Messaging (free on the Spark plan). Expo needs a Firebase service-account key to send them:
+
+1. Firebase console → ⚙ **Project settings** → **Service accounts** → **Generate new private key** → **Generate key**. A JSON file downloads. It is a **secret**: never commit it or share it.
+2. Upload it on **expo.dev** → project **trip-manager** → **Credentials** → **Android** → `com.iamharish18.tripmanager` → **FCM V1 service account key** → **Add a service account key** → upload → **Save**.
+3. Delete the downloaded file from your computer afterwards (Expo keeps it).
 
 ## Project facts
 

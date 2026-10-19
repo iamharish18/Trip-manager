@@ -37,10 +37,11 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.createdAt == request.time;
 
-      // Only the name can change.
+      // Only the name and the notifications switch can change.
       allow update: if isOwner(uid)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
-        && validName(request.resource.data.name);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'notificationsOff'])
+        && validName(request.resource.data.name)
+        && request.resource.data.get('notificationsOff', false) is bool;
 
       allow delete: if false;
     }
@@ -258,10 +259,11 @@ service cloud.firestore {
           && editable(trip())
           && request.resource.data.keys().hasOnly(
                ['amount', 'paidByPid', 'categoryId', 'date', 'description', 'splitAmongPids',
-                'createdByUid', 'createdAt', 'updatedAt', 'isDeleted'])
+                'createdByUid', 'createdAt', 'updatedAt', 'isDeleted', 'notifyPending'])
           && request.resource.data.keys().hasAll(
                ['amount', 'paidByPid', 'categoryId', 'date', 'description', 'splitAmongPids',
-                'createdByUid', 'createdAt', 'updatedAt', 'isDeleted'])
+                'createdByUid', 'createdAt', 'updatedAt', 'isDeleted', 'notifyPending'])
+          && request.resource.data.notifyPending == true
           && validExpense(request.resource.data)
           && request.resource.data.splitAmongPids is list
           && request.resource.data.splitAmongPids.size() >= 1
@@ -273,15 +275,43 @@ service cloud.firestore {
           && request.resource.data.isDeleted == false;
 
         // The split list, creator and creation time never change.
-        allow update: if isMember()
-          && editable(trip())
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-               ['amount', 'paidByPid', 'categoryId', 'date', 'description', 'updatedAt', 'isDeleted'])
-          && validExpense(request.resource.data)
-          && request.resource.data.updatedAt == request.time;
+        function edits() {
+          return editable(trip())
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+                 ['amount', 'paidByPid', 'categoryId', 'date', 'description', 'updatedAt', 'isDeleted'])
+            && validExpense(request.resource.data)
+            && request.resource.data.updatedAt == request.time;
+        }
+
+        // The person who added it marks its notification as sent (SPEC §11).
+        function marksNotified() {
+          return resource.data.createdByUid == request.auth.uid
+            && resource.data.get('notifyPending', false) == true
+            && request.resource.data.notifyPending == false
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notifyPending']);
+        }
+
+        allow update: if isMember() && (edits() || marksNotified());
 
         // Deleting is a soft delete (isDeleted), never a real one.
         allow delete: if false;
+      }
+
+      // ---- Push addresses (SPEC §11) ----
+
+      // One per member, so members can notify each other. You write only
+      // your own; you can always remove your own (e.g. when leaving).
+      match /pushTokens/{uid} {
+        allow read: if isMember();
+        allow create, update: if isMember()
+          && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['token', 'updatedAt'])
+          && request.resource.data.keys().hasAll(['token', 'updatedAt'])
+          && request.resource.data.token is string
+          && request.resource.data.token.size() > 0
+          && request.resource.data.token.size() <= 200
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if signedIn() && request.auth.uid == uid;
       }
 
       // ---- Comments (SPEC §10) ----

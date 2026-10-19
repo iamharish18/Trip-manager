@@ -85,7 +85,8 @@ export function joinAsNewPerson(tripId, name, uid) {
   });
 }
 
-// Releases your name (it stays on the trip as "Left the trip") and leaves.
+// Releases your name (it stays on the trip as "Left the trip"), leaves, and
+// removes your push address from the trip.
 export function leaveTrip(tripId, participantId, uid) {
   return runTransaction(db, async (tx) => {
     const tripRef = doc(db, 'trips', tripId);
@@ -99,5 +100,7 @@ export function leaveTrip(tripId, participantId, uid) {
       leftAt: serverTimestamp(),
     });
     tx.update(tripRef, { memberUids: trip.memberUids.filter((m) => m !== uid) });
+    // Stop getting this trip's notifications.
+    tx.delete(doc(db, 'trips', tripId, 'pushTokens', uid));
   });
 }

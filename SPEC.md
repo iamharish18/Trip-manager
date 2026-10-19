@@ -238,11 +238,14 @@ Example:
 
 ## 11. Notifications
 
-- Sent **only when a new expense is added**.
-- Recipients: all claimed members of the trip **except** the person who added it (and except members who have left).
-- Example text: *"Rahul added ₹1,200 · Dinner at Fisherman's Wharf (Food)"*
-- An expense added offline triggers its notification when it syncs.
-- Implemented with a Cloud Function triggered when a Firestore expense document is created.
+- Sent **only when a new expense is added** (not for edits, deletes or comments).
+- Recipients: all current members of the trip **except** the person who added it. People who left don't get them.
+- Title: the trip name. Text: *"{adder's trip name} added ₹1,200 · Dinner at Fisherman's Wharf (Food)"*, or just the category without a description.
+- **Tapping** a notification opens that expense's detail screen. Notifications also show as banners while the app is open.
+- **How (free plan):** each phone saves its Expo push address on every trip it belongs to (`pushTokens`); the phone that adds an expense sends the push through Expo's push service once the expense has reached the server.
+- **Offline / closed app:** each new expense starts with `notifyPending`; if the push couldn't be sent yet, the adder's phone sends it the next time the app is open and online. Each expense notifies at most once.
+- **On by default:** right after logging in, the app shows Android's "Allow notifications?" prompt once (Android 13+ requires it; older Android allows them automatically). If declined, the app works without notifications, and they can be turned on later from Account.
+- **Account → Notifications** switch turns them on or off for all your trips. Logging out removes this phone's push address from your trips; leaving a trip removes it from that trip.
 
 ---
 
@@ -268,7 +271,8 @@ Example:
 
 ```
 users/{uid}
-  name, email, pushToken, createdAt
+  name, email, createdAt
+  notificationsOff      // optional; Account → Notifications switched off
 
 joinCodes/{code}
   tripId                // reserved once, never changed
@@ -300,6 +304,10 @@ trips/{tripId}/expenses/{eid}
   splitAmongPids[]      // snapshot at creation
   createdByUid, createdAt, updatedAt
   isDeleted
+  notifyPending         // true until the other members have been notified
+
+trips/{tripId}/pushTokens/{uid}    // this member's Expo push address
+  token, updatedAt
 
 trips/{tripId}/comments/{cmid}     // one list per trip, so counts need one listener
   expenseId, text
