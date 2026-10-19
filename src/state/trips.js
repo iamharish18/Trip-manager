@@ -1,12 +1,14 @@
 // Live trip data for screens. Values come from Firestore's offline cache
 // first, so they work without internet.
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 import { activeExpenses } from '@/logic/money';
-import { isTripOpen } from '@/logic/trips';
+import { isReopenWindowOpen, isSettling, isTripOpen, reopenEndsAt } from '@/logic/trips';
 import { subscribeToComments } from '@/services/comments';
 import { subscribeToCategories, subscribeToExpenses } from '@/services/expenses';
+import { finaliseIfExpired, subscribeToSettlements } from '@/services/lifecycle';
+import { notifyTripEvent } from '@/services/notifications';
 import { subscribeToMyTrips, subscribeToParticipants, subscribeToTrip } from '@/services/trips';
 import { useSession } from '@/state/session';
 
@@ -53,6 +55,18 @@ export function useExpenses(tripId) {
 
 const TripContext = createContext(null);
 
+// The current time, refreshed every 30 seconds while `ticking` (for the
+// reopen countdown and the moment the 24 hours run out).
+function useNow(ticking) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!ticking) return undefined;
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, [ticking]);
+  return now;
+}
+
 export function TripProvider({ tripId, children }) {
   const { user } = useSession();
   const tripState = useKeyedSubscription(tripId, subscribeToTrip);
@@ -60,13 +74,29 @@ export function TripProvider({ tripId, children }) {
   const expensesState = useKeyedSubscription(tripId, subscribeToExpenses);
   const categoriesState = useKeyedSubscription(tripId, subscribeToCategories);
   const commentsState = useKeyedSubscription(tripId, subscribeToComments);
+  const settlementsState = useKeyedSubscription(tripId, subscribeToSettlements);
   // The last deleted expense, offered for Undo on the Expenses tab.
   const [deletedExpenseId, setDeletedExpenseId] = useState(null);
 
   const trip = tripState.value ?? null;
+  const now = useNow(trip?.status === 'reopened');
   const allExpenses = expensesState.value ?? [];
-  const isOpen = isTripOpen(trip);
+  const isOpen = isTripOpen(trip, now);
   const isMember = Boolean(trip && user && trip.memberUids?.includes(user.uid));
+
+  // If a reopen's 24 hours have run out, the first member to open the trip
+  // finalises it and lets the others know (SPEC §9). Needs internet; tried
+  // once per visit.
+  const finaliseTried = useRef(false);
+  const uid = user?.uid;
+  useEffect(() => {
+    if (!trip || !isMember || finaliseTried.current) return;
+    if (trip.status !== 'reopened' || isReopenWindowOpen(trip, now)) return;
+    finaliseTried.current = true;
+    finaliseIfExpired(trip)
+      .then((result) => result && notifyTripEvent(trip.id, uid, 'final', result.settlements))
+      .catch(() => {});
+  }, [trip, isMember, now, uid]);
 
   const value = {
     tripId,
@@ -86,6 +116,12 @@ export function TripProvider({ tripId, children }) {
     notFound: !tripState.isLoading && !trip,
     isCreator: Boolean(trip && user && trip.creatorUid === user.uid),
     isOpen,
+    // Closed for settling up (Closed, Final, or a reopen that ran out).
+    isSettling: isSettling(trip, now),
+    // When a reopened trip locks again (ms), and the current time.
+    reopenEndsAt: reopenEndsAt(trip),
+    now,
+    settlements: settlementsState.value ?? [],
     // Can add, edit and delete expenses and categories (SPEC §6).
     canWrite: isOpen && isMember,
     deletedExpenseId,

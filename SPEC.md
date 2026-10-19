@@ -221,6 +221,15 @@ Example:
 - Reopen: a new ₹300 expense paid by Priya, split 3 ways (Rahul's share ₹100).
 - Final close: Earlier payment *Rahul → Priya ₹1,000 (paid)*; remaining *Rahul → Priya ₹100*.
 
+### Details (agreed in M8)
+- **Closing** (creator, needs internet) reads all expenses from the server, calculates the settlements and saves "closed + settlements" in one write, then double-checks that no expense slipped in meanwhile and recalculates if one did.
+- **Reopening** (creator, once, needs internet) asks for confirmation: "You can reopen only once, for 24 hours. Payments already marked paid are kept."
+- **The 24-hour window** is enforced by the security rules with the server's clock. While reopened, the trip shows "Reopened · locks again in 23 h 12 m". The creator can **Close now** at any time.
+- **If the 24 hours run out**, whoever opens the trip first finalises it (status Final + final settlements); the result is the same whoever does it.
+- **Un-marking:** the same people who can mark Paid can undo it, with no confirmation.
+- **Everyone already square:** "Everyone's settled up. Nothing to pay."
+- **Notifications** (in addition to new expenses): on close and on final close, each member gets a personal message ("Goa trip is closed. You owe Priya ₹4,500." / "Amit owes you ₹900." / "You're all settled."); on reopen, "Goa trip was reopened for 24 hours to fix expenses." Sent from the phone that closed or reopened the trip. Tapping opens the Balances tab.
+
 ---
 
 ## 10. Comments
@@ -319,7 +328,8 @@ trips/{tripId}/settlements/{sid}
   round                 // 1 = first close, 2 = final close
   isPaid
   isRecordedPayment     // true once carried over through a reopen (read-only)
-  markedByUid, markedAt
+  markedByUid, markedAt // who last marked it paid / not paid
+  createdAt
 ```
 
 **Firestore Security Rules** enforce: only members can read or write; edits are blocked unless the status is active/reopened; only the creator can close, reopen, delete or remove participants; only the payer, the receiver or the creator can mark a settlement Paid; only the author can delete a comment.

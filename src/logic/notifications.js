@@ -27,6 +27,14 @@ export function recipientTokens(tokenDocs, memberUids, adderUid) {
   return [...tokens];
 }
 
+// Text for trip close / final close / reopen notifications (SPEC §9).
+// `summary` is the member's settleUpSummary ("You owe Priya ₹4,500.").
+export function tripEventBody(event, summary) {
+  if (event === 'reopened') return 'Reopened for 24 hours to fix expenses.';
+  const intro = event === 'final' ? 'The trip is now final.' : 'The trip is closed.';
+  return `${intro} ${summary}`;
+}
+
 // Expo push messages, in batches of at most 100 per request.
 export function pushBatches(tokens, { title, body }, data) {
   const messages = tokens.map((to) => ({
@@ -47,6 +55,7 @@ export function pushBatches(tokens, { title, body }, data) {
 // Where tapping a notification goes.
 export function notificationRoute(data) {
   if (data?.tripId && data?.expenseId) return `/trips/${data.tripId}/expenses/${data.expenseId}`;
+  if (data?.tripId && data?.screen === 'balances') return `/trips/${data.tripId}/balances`;
   if (data?.tripId) return `/trips/${data.tripId}`;
   return null;
 }

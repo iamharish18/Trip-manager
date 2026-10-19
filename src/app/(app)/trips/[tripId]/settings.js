@@ -1,5 +1,5 @@
-// Trip settings: edit the name and dates (creator only), manage categories,
-// and leave the trip (members). Close, reopen, delete and export come later.
+// Trip settings: edit the name and dates and close / reopen (creator),
+// manage categories, and leave the trip (members). Delete and export come later.
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -11,6 +11,7 @@ import FormField from '@/components/FormField';
 import FormMessage from '@/components/FormMessage';
 import Screen from '@/components/Screen';
 import ScreenHeader from '@/components/ScreenHeader';
+import TripStatusActions from '@/components/TripStatusActions';
 import { formatTripDates } from '@/logic/dates';
 import { describeError } from '@/logic/errors';
 import {
@@ -166,6 +167,7 @@ export default function TripSettingsScreen() {
           </Text>
         </View>
         <CategoriesLink tripId={tripId} />
+        {isCreator ? <TripStatusActions /> : null}
         <InfoNote>
           {isCreator
             ? 'This trip is closed, so its name and dates can’t be changed.'
@@ -221,7 +223,9 @@ export default function TripSettingsScreen() {
 
       <CategoriesLink tripId={tripId} />
 
-      <InfoNote>Close trip, export PDF and delete trip arrive in later updates.</InfoNote>
+      <TripStatusActions />
+
+      <InfoNote>Export PDF and delete trip arrive in later updates.</InfoNote>
 
       <Button mode="contained" onPress={save} style={styles.save}>
         Save changes

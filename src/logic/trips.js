@@ -1,7 +1,39 @@
 // Small helpers about trips and participants, shared by screens.
 
-export function isTripOpen(trip) {
-  return trip?.status === 'active' || trip?.status === 'reopened';
+export const REOPEN_HOURS = 24;
+const HOUR = 60 * 60 * 1000;
+
+// When a reopened trip locks again (ms), or null.
+export function reopenEndsAt(trip) {
+  const start = trip?.reopenedAt?.toMillis?.();
+  return start == null ? null : start + REOPEN_HOURS * HOUR;
+}
+
+// Reopened and still within its 24 hours. A reopen not yet confirmed by the
+// server (no reopenedAt yet) counts as open.
+export function isReopenWindowOpen(trip, now = Date.now()) {
+  if (trip?.status !== 'reopened') return false;
+  const ends = reopenEndsAt(trip);
+  return ends === null || now < ends;
+}
+
+// Open for changes (SPEC §4): Active, or Reopened within its 24 hours.
+export function isTripOpen(trip, now = Date.now()) {
+  return trip?.status === 'active' || isReopenWindowOpen(trip, now);
+}
+
+// Closed for settling up: Closed, Final, or a reopen whose time ran out.
+export function isSettling(trip, now = Date.now()) {
+  return Boolean(trip) && !isTripOpen(trip, now);
+}
+
+// "23 h 12 m", "45 m", or "less than a minute".
+export function formatTimeLeft(ms) {
+  const minutes = Math.floor(ms / 60000);
+  if (minutes < 1) return 'less than a minute';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h ? `${h} h ${m} m` : `${m} m`;
 }
 
 // Creator first, then in the order people were added (new ones last).

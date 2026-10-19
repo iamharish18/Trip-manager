@@ -6,7 +6,7 @@ import { Icon, IconButton, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { formatTripDates } from '@/logic/dates';
-import { peopleLabel } from '@/logic/trips';
+import { formatTimeLeft, peopleLabel } from '@/logic/trips';
 import { useTrip } from '@/state/trips';
 import { useAppTheme } from '@/theme';
 
@@ -45,6 +45,23 @@ function TripHeader() {
   );
 }
 
+// While reopened: "Reopened · locks again in 23 h 12 m" (SPEC §9).
+function ReopenedBanner() {
+  const theme = useAppTheme();
+  const { isOpen, trip, reopenEndsAt, now } = useTrip();
+  if (trip.status !== 'reopened' || !isOpen) return null;
+  const left = reopenEndsAt === null ? null : reopenEndsAt - now;
+  return (
+    <View style={[styles.banner, { backgroundColor: theme.app.primaryTint }]}>
+      <Icon source="lock-open-variant-outline" size={18} color={theme.app.primary} />
+      <Text variant="bodySmall" style={styles.titles}>
+        Reopened
+        {left === null ? '' : ` · locks again in ${formatTimeLeft(left)}`}
+      </Text>
+    </View>
+  );
+}
+
 const tabIcon = (name) =>
   function TabIcon({ color, size }) {
     return <Icon source={name} color={color} size={size} />;
@@ -55,6 +72,7 @@ export default function TripTabsLayout() {
   return (
     <SafeAreaView style={[styles.fill, { backgroundColor: theme.app.background }]} edges={['top']}>
       <TripHeader />
+      <ReopenedBanner />
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -90,4 +108,14 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingBottom: 4 },
   back: { marginRight: 0 },
   titles: { flex: 1, minWidth: 0 },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 4,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
 });

@@ -1,4 +1,10 @@
-import { expenseMessage, notificationRoute, pushBatches, recipientTokens } from './notifications';
+import {
+  expenseMessage,
+  notificationRoute,
+  pushBatches,
+  recipientTokens,
+  tripEventBody,
+} from './notifications';
 
 describe('expenseMessage', () => {
   it('uses the trip name as title and describes the expense', () => {
@@ -69,9 +75,22 @@ describe('pushBatches', () => {
   });
 });
 
+describe('tripEventBody', () => {
+  it('describes closing, final closing and reopening', () => {
+    expect(tripEventBody('closed', 'You owe Priya ₹4,500.')).toBe(
+      'The trip is closed. You owe Priya ₹4,500.',
+    );
+    expect(tripEventBody('final', 'You’re all settled.')).toBe(
+      'The trip is now final. You’re all settled.',
+    );
+    expect(tripEventBody('reopened')).toBe('Reopened for 24 hours to fix expenses.');
+  });
+});
+
 describe('notificationRoute', () => {
-  it('opens the expense, or the trip', () => {
+  it('opens the expense, the Balances tab, or the trip', () => {
     expect(notificationRoute({ tripId: 't1', expenseId: 'e1' })).toBe('/trips/t1/expenses/e1');
+    expect(notificationRoute({ tripId: 't1', screen: 'balances' })).toBe('/trips/t1/balances');
     expect(notificationRoute({ tripId: 't1' })).toBe('/trips/t1');
     expect(notificationRoute(undefined)).toBeNull();
   });

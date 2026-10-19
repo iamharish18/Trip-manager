@@ -19,12 +19,15 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { findCategory } from '@/logic/categories';
+import { formatRupees } from '@/logic/format';
 import {
   EXPENSE_CHANNEL,
   expenseMessage,
   pushBatches,
   recipientTokens,
+  tripEventBody,
 } from '@/logic/notifications';
+import { settleUpSummary } from '@/logic/settlements';
 
 import { db, docExists } from './firebase';
 
@@ -46,8 +49,8 @@ export function configureNotificationDisplay() {
 async function ensureChannel() {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(EXPENSE_CHANNEL, {
-    name: 'New expenses',
-    description: 'When someone adds an expense to one of your trips',
+    name: 'Trip updates',
+    description: 'New expenses, and when a trip is closed or reopened',
     // Exported via `export *` in expo-notifications, which the lint rule can't follow.
     // eslint-disable-next-line import/namespace
     importance: Notifications.AndroidImportance.HIGH,
@@ -144,6 +147,46 @@ export async function notifyNewExpense(tripId, expenseId, uid) {
 
   for (const batch of pushBatches(tokens, content, { tripId, expenseId })) {
     await postToExpo(batch);
+  }
+}
+
+/**
+ * Notifies the trip's other members that it was closed, finalised or
+ * reopened (SPEC §9). `event` is 'closed', 'final' or 'reopened'; for
+ * closes, each member gets their own "You owe…" summary. Tapping opens
+ * Balances. Best effort: needs internet.
+ */
+export async function notifyTripEvent(tripId, actorUid, event, settlements = []) {
+  const [tripSnap, peopleSnap, tokensSnap] = await Promise.all([
+    getDocFromServer(doc(db, 'trips', tripId)),
+    getDocsFromServer(collection(db, 'trips', tripId, 'participants')),
+    getDocsFromServer(collection(db, 'trips', tripId, 'pushTokens')),
+  ]);
+  if (!docExists(tripSnap)) return;
+  const trip = tripSnap.data();
+  const people = peopleSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const nameOf = (pid) => people.find((p) => p.id === pid)?.name ?? 'Someone';
+
+  const messages = [];
+  const seen = new Set();
+  for (const tokenDoc of tokensSnap.docs) {
+    const uid = tokenDoc.id;
+    const { token } = tokenDoc.data();
+    if (uid === actorUid || !trip.memberUids.includes(uid) || !token || seen.has(token)) continue;
+    seen.add(token);
+    const pid = people.find((p) => p.claimedByUid === uid)?.id;
+    const summary = settleUpSummary(pid, settlements, nameOf, formatRupees);
+    messages.push({
+      to: token,
+      title: trip.name,
+      body: tripEventBody(event, summary),
+      data: { tripId, screen: 'balances' },
+      channelId: EXPENSE_CHANNEL,
+      priority: 'high',
+    });
+  }
+  for (let i = 0; i < messages.length; i += 100) {
+    await postToExpo(messages.slice(i, i + 100));
   }
 }
 

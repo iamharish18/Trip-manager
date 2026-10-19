@@ -5,20 +5,29 @@ import { FlatList, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 
 import Avatar from '@/components/Avatar';
+import SettleUp from '@/components/SettleUp';
 import { formatRupees } from '@/logic/format';
 import { orderBalances } from '@/logic/insights';
 import { computeBalances } from '@/logic/money';
 import { describePosition } from '@/logic/position';
+import { netsAfterPayments } from '@/logic/settlements';
 import { useTrip } from '@/state/trips';
 import { useAppTheme } from '@/theme';
 
 export default function BalancesTab() {
   const theme = useAppTheme();
-  const { participants, expenses, me } = useTrip();
+  const { trip, participants, expenses, settlements, me, isSettling } = useTrip();
 
-  const balances = computeBalances(expenses, participants);
+  // Payments recorded before a reopen count towards what's still owed.
+  const recorded = settlements.filter((s) => s.isRecordedPayment);
+  const fromExpenses = computeBalances(expenses, participants);
+  const nets = netsAfterPayments(fromExpenses, recorded);
+  const balances = Object.fromEntries(
+    Object.entries(fromExpenses).map(([pid, b]) => [pid, { ...b, net: nets[pid] ?? b.net }]),
+  );
   const rows = orderBalances(participants, balances, me?.id);
-  const position = me ? describePosition(balances[me.id]?.net ?? 0) : null;
+  // While settling up, the Settle up section replaces the position card.
+  const position = me && !isSettling ? describePosition(balances[me.id]?.net ?? 0) : null;
   const toneColor = {
     positive: theme.app.positive,
     negative: theme.app.negative,
@@ -28,6 +37,7 @@ export default function BalancesTab() {
 
   const header = (
     <View>
+      {isSettling ? <SettleUp /> : null}
       {position ? (
         <View style={[styles.position, { backgroundColor: theme.app.primaryTint }]}>
           <Text variant="bodySmall" style={{ color: theme.app.muted }}>
@@ -46,11 +56,13 @@ export default function BalancesTab() {
     </View>
   );
 
-  const footer = (
+  const footer = isSettling ? null : (
     <View style={styles.footer}>
       <Icon source="lock-outline" size={16} color={theme.app.muted} />
       <Text variant="bodySmall" style={[styles.grow, { color: theme.app.muted }]}>
-        Who pays whom appears when the trip is closed.
+        {trip.status === 'reopened'
+          ? 'Settle up returns when the trip closes again.'
+          : 'Who pays whom appears when the trip is closed.'}
       </Text>
     </View>
   );
