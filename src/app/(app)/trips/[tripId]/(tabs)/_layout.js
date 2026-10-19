@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import ExportPdfButton from '@/components/ExportPdf';
 import OfflineBanner from '@/components/OfflineBanner';
 import SyncIcon from '@/components/SyncIcon';
 import { formatTripDates } from '@/logic/dates';
@@ -39,6 +40,7 @@ function TripHeader() {
         </Text>
       </View>
       <SyncIcon />
+      <ExportPdfButton />
       <IconButton
         icon="cog-outline"
         accessibilityLabel="Trip settings"

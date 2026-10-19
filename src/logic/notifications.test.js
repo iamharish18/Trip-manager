@@ -84,6 +84,7 @@ describe('tripEventBody', () => {
       'The trip is now final. You’re all settled.',
     );
     expect(tripEventBody('reopened')).toBe('Reopened for 24 hours to fix expenses.');
+    expect(tripEventBody('deleted', 'Rahul')).toBe('Rahul deleted this trip.');
   });
 });
 

@@ -151,10 +151,11 @@ export async function notifyNewExpense(tripId, expenseId, uid) {
 }
 
 /**
- * Notifies the trip's other members that it was closed, finalised or
- * reopened (SPEC §9). `event` is 'closed', 'final' or 'reopened'; for
- * closes, each member gets their own "You owe…" summary. Tapping opens
- * Balances. Best effort: needs internet.
+ * Notifies the trip's other members that it was closed, finalised,
+ * reopened (SPEC §9) or deleted (SPEC §13). `event` is 'closed', 'final',
+ * 'reopened' or 'deleted'; for closes, each member gets their own "You
+ * owe…" summary. Tapping opens Balances (or nothing, for a deleted trip).
+ * Best effort: needs internet.
  */
 export async function notifyTripEvent(tripId, actorUid, event, settlements = []) {
   const [tripSnap, peopleSnap, tokensSnap] = await Promise.all([
@@ -175,12 +176,15 @@ export async function notifyTripEvent(tripId, actorUid, event, settlements = [])
     if (uid === actorUid || !trip.memberUids.includes(uid) || !token || seen.has(token)) continue;
     seen.add(token);
     const pid = people.find((p) => p.claimedByUid === uid)?.id;
-    const summary = settleUpSummary(pid, settlements, nameOf, formatRupees);
+    const summary =
+      event === 'deleted'
+        ? (people.find((p) => p.claimedByUid === actorUid)?.name ?? 'The creator')
+        : settleUpSummary(pid, settlements, nameOf, formatRupees);
     messages.push({
       to: token,
       title: trip.name,
       body: tripEventBody(event, summary),
-      data: { tripId, screen: 'balances' },
+      data: event === 'deleted' ? {} : { tripId, screen: 'balances' },
       channelId: EXPENSE_CHANNEL,
       priority: 'high',
     });

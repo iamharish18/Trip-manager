@@ -45,7 +45,9 @@ export function NotificationsProvider({ children }) {
 
   const uid = user?.uid;
   const muted = Boolean(profile?.notificationsOff);
+  // Trips being deleted are left alone, so nothing is re-added to them.
   const tripIdsKey = trips
+    .filter((t) => !t.deleting)
     .map((t) => t.id)
     .sort()
     .join(',');

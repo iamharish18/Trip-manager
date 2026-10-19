@@ -27,10 +27,12 @@ export function recipientTokens(tokenDocs, memberUids, adderUid) {
   return [...tokens];
 }
 
-// Text for trip close / final close / reopen notifications (SPEC §9).
-// `summary` is the member's settleUpSummary ("You owe Priya ₹4,500.").
+// Text for trip close / final close / reopen / delete notifications
+// (SPEC §9, §13). `summary` is the member's settleUpSummary ("You owe Priya
+// ₹4,500."), or for 'deleted' the creator's trip name.
 export function tripEventBody(event, summary) {
   if (event === 'reopened') return 'Reopened for 24 hours to fix expenses.';
+  if (event === 'deleted') return `${summary} deleted this trip.`;
   const intro = event === 'final' ? 'The trip is now final.' : 'The trip is closed.';
   return `${intro} ${summary}`;
 }

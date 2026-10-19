@@ -1,5 +1,5 @@
-// Trip settings: edit the name and dates and close / reopen (creator),
-// manage categories, and leave the trip (members). Delete and export come later.
+// Trip settings: edit the name and dates, close / reopen and delete
+// (creator), manage categories, export the PDF, and leave the trip (members).
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -7,6 +7,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Button, Dialog, Icon, Portal, Text } from 'react-native-paper';
 
 import DateField from '@/components/DateField';
+import DeleteTrip from '@/components/DeleteTrip';
+import { useExportPdf } from '@/components/ExportPdf';
 import FormField from '@/components/FormField';
 import FormMessage from '@/components/FormMessage';
 import Screen from '@/components/Screen';
@@ -36,6 +38,33 @@ function InfoNote({ children }) {
         {children}
       </Text>
     </View>
+  );
+}
+
+function ExportPdfLink() {
+  const theme = useAppTheme();
+  const { exportPdf, busy } = useExportPdf();
+  return (
+    <Pressable
+      onPress={exportPdf}
+      disabled={busy}
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        styles.card,
+        styles.linkRow,
+        { backgroundColor: theme.app.card, borderColor: theme.app.border },
+        pressed && styles.pressed,
+      ]}
+    >
+      <Icon source="file-pdf-box" size={20} color={theme.app.muted} />
+      <View style={styles.grow}>
+        <Text>Export PDF</Text>
+        <Text variant="bodySmall" style={{ color: theme.app.muted }}>
+          {busy ? 'Making the PDF…' : 'Share a summary of the trip'}
+        </Text>
+      </View>
+      <Icon source="share-variant-outline" size={20} color={theme.app.muted} />
+    </Pressable>
   );
 }
 
@@ -170,6 +199,7 @@ export default function TripSettingsScreen() {
           </Text>
         </View>
         <CategoriesLink tripId={tripId} />
+        <ExportPdfLink />
         {isCreator ? <TripStatusActions /> : null}
         <InfoNote>
           {isCreator
@@ -179,6 +209,11 @@ export default function TripSettingsScreen() {
         {!isCreator && me && trip.status === 'active' ? (
           <View style={styles.leave}>
             <LeaveTrip />
+          </View>
+        ) : null}
+        {isCreator ? (
+          <View style={styles.leave}>
+            <DeleteTrip />
           </View>
         ) : null}
       </Screen>
@@ -224,15 +259,16 @@ export default function TripSettingsScreen() {
         The end date can’t be before the start date. Tap × to clear it.
       </Text>
 
+      <Button mode="contained" onPress={save} style={styles.saveButton}>
+        Save changes
+      </Button>
+
       <CategoriesLink tripId={tripId} />
+      <ExportPdfLink />
 
       <TripStatusActions />
 
-      <InfoNote>Export PDF and delete trip arrive in later updates.</InfoNote>
-
-      <Button mode="contained" onPress={save} style={styles.save}>
-        Save changes
-      </Button>
+      <DeleteTrip />
     </Screen>
   );
 }
@@ -248,7 +284,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 2,
   },
-  save: { marginTop: 'auto' },
+  saveButton: { marginBottom: 16 },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   leave: { marginTop: 'auto' },
   pressed: { opacity: 0.7 },

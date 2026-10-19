@@ -273,7 +273,14 @@ Example:
 
 ## 13. Trip Deletion & Leaving
 
-- Only the **creator** can delete a trip. This permanently deletes all of its data (participants, expenses, comments, categories, settlements) after a confirmation dialog.
+- Only the **creator** can delete a trip, at any status. This permanently deletes all of its data (participants, expenses, comments, categories, settlements, push addresses, the Trip ID) after a confirmation dialog: "Delete Goa trip for everyone? All expenses, comments and settlements are removed for all members. This can't be undone." It suggests exporting the PDF first, and needs internet.
+- **How (free plan):** the creator's phone marks the trip `deleting`, removes everything inside it, then the trip and its Trip ID. A trip marked `deleting` is hidden everywhere; if deletion was interrupted, it resumes the next time the creator opens the app.
+- Other members get a notification: "Rahul deleted the trip Goa trip."
+
+### PDF export
+- **Any member, at any time.** While the trip is open, the PDF is marked "Not final: the trip is still open" and has no Settle up section.
+- Contents (A4): header (name, dates, status, people, generated date), summary (total, number of expenses), Settle up with paid status and earlier payments (once closed), balances (Paid / Share / Net), spending by category with bars and percentages, and all expenses by date (date, description, category, who paid, amount). No comments and no per-expense splits.
+- Made on the phone (works offline) and shared through Android's share sheet. Offered from the PDF icon in the trip header and from Trip settings.
 - A member can leave a trip while it is Active (§5). The creator cannot leave.
 
 ---
@@ -418,7 +425,7 @@ A **sync indicator** sits in the trip's top bar: synced (cloud with check), offl
 | 9 | **Balances tab: Settle up** (Closed / Final) | "Trip closed" banner; progress ("1 of 3 paid"); each payment "A pays B ₹X" with Mark paid / Paid toggle; Earlier payments section (Final, after a reopen) |
 | 10 | **Insights tab** | Donut chart (react-native-svg) with total in the centre; categories with color, whole-number percentage (always adding up to 100%) and amount, largest first. With no expenses: "No spending yet" |
 | 11 | **Members tab** | Trip ID card with copy and share (hidden after close, with "Expires when the trip is closed" note); each person with avatar and status (Creator / Joined / Not joined yet / Left the trip); ⋮ menu: Rename, Remove (creator only); "Add person" button |
-| 12 | **Trip settings** | Edit name and dates; Categories; Export PDF (enabled when closed). Creator: Close trip (with explanation) / Reopen once for 24 hours / Delete trip (red, with confirmation). Member: Leave trip (Active only) |
+| 12 | **Trip settings** | Edit name and dates; Categories; Export PDF (any time). Creator: Close trip (with explanation) / Reopen once for 24 hours / Delete trip (red, with confirmation). Member: Leave trip (Active only) |
 | 13 | **Categories** | Default and custom categories; add custom; delete custom if unused |
 | 14 | **PDF export** | Trip summary, all expenses, category breakdown, balances, settlements with paid status; shared via the phone's share sheet |
 

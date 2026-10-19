@@ -1,6 +1,7 @@
 // Home: your trips, plus Create trip and Join trip.
 
 import { useRouter } from 'expo-router';
+import { useEffect, useRef } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Icon, Text } from 'react-native-paper';
 
@@ -10,15 +11,32 @@ import Screen from '@/components/Screen';
 import ScreenHeader from '@/components/ScreenHeader';
 import TripCard from '@/components/TripCard';
 import { sortTrips } from '@/logic/trips';
+import { deleteTrip } from '@/services/deleteTrip';
 import { useSession } from '@/state/session';
 import { useMyTrips } from '@/state/trips';
 import { useAppTheme } from '@/theme';
 
+// If a delete you started was interrupted (e.g. you went offline), finish
+// it. Tried once per trip per visit; needs internet.
+function useResumeDeletes(trips, uid) {
+  const tried = useRef(new Set());
+  useEffect(() => {
+    for (const trip of trips) {
+      if (!trip.deleting || trip.creatorUid !== uid || tried.current.has(trip.id)) continue;
+      tried.current.add(trip.id);
+      deleteTrip(trip.id, uid).catch(() => {});
+    }
+  }, [trips, uid]);
+}
+
 export default function HomeScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { displayName } = useSession();
-  const { trips, isLoading } = useMyTrips();
+  const { user, displayName } = useSession();
+  const { trips: allTrips, isLoading } = useMyTrips();
+  // Trips being deleted are hidden (SPEC §13).
+  const trips = allTrips.filter((t) => !t.deleting);
+  useResumeDeletes(allTrips, user?.uid);
 
   let body;
   if (isLoading) {
