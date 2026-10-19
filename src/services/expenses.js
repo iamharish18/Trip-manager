@@ -13,7 +13,7 @@ import {
   updateDoc,
 } from '@react-native-firebase/firestore';
 
-import { db } from './firebase';
+import { WITH_PENDING, db, withPending } from './firebase';
 
 const expensesRef = (tripId) => collection(db, 'trips', tripId, 'expenses');
 const expenseRef = (tripId, id) => doc(db, 'trips', tripId, 'expenses', id);
@@ -59,10 +59,12 @@ export function setExpenseDeleted(tripId, id, isDeleted) {
   return updateDoc(expenseRef(tripId, id), { isDeleted, updatedAt: serverTimestamp() });
 }
 
+// Each item says whether it's still uploading (`pending`), for the sync icon.
 export function subscribeToExpenses(tripId, onChange, onError) {
   return onSnapshot(
     expensesRef(tripId),
-    (snapshot) => onChange(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    WITH_PENDING,
+    (snapshot) => onChange(snapshot.docs.map(withPending)),
     onError,
   );
 }
@@ -81,7 +83,8 @@ export function deleteCategory(tripId, id) {
 export function subscribeToCategories(tripId, onChange, onError) {
   return onSnapshot(
     categoriesRef(tripId),
-    (snapshot) => onChange(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    WITH_PENDING,
+    (snapshot) => onChange(snapshot.docs.map(withPending)),
     onError,
   );
 }

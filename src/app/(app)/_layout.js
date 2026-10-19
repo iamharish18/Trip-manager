@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 
 import { NotificationsProvider } from '@/state/notifications';
+import { SyncProvider } from '@/state/sync';
 
 export const unstable_settings = {
   anchor: 'home',
@@ -8,8 +9,10 @@ export const unstable_settings = {
 
 export default function AppLayout() {
   return (
-    <NotificationsProvider>
-      <Stack screenOptions={{ headerShown: false }} />
-    </NotificationsProvider>
+    <SyncProvider>
+      <NotificationsProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </NotificationsProvider>
+    </SyncProvider>
   );
 }

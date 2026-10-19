@@ -7,7 +7,6 @@ import { Button, Dialog, IconButton, Menu, Portal, Snackbar, Text } from 'react-
 
 import Avatar from '@/components/Avatar';
 import FormField from '@/components/FormField';
-import { describeError } from '@/logic/errors';
 import { expenseCountFor } from '@/logic/money';
 import { participantStatus, sortParticipants } from '@/logic/trips';
 import { MAX_PARTICIPANTS, validateParticipantName } from '@/logic/validation';
@@ -51,7 +50,7 @@ function TripIdCard({ trip }) {
 export default function MembersTab() {
   const theme = useAppTheme();
   const { user } = useSession();
-  const { trip, tripId, participants, expenses, isCreator, isOpen } = useTrip();
+  const { trip, tripId, participants, expenses, isCreator, isOpen, track } = useTrip();
 
   const [menuFor, setMenuFor] = useState(null);
   // { mode: 'add' | 'rename', participant?, name, error }
@@ -64,9 +63,7 @@ export default function MembersTab() {
   const full = participants.length >= MAX_PARTICIPANTS;
 
   // Writes apply to the local cache at once (also offline); a failure is
-  // only reported if the server later rejects it.
-  const reportFailure = (error) => setNotice(describeError(error).message);
-
+  // reported if the server later rejects it.
   function saveEditor() {
     const others = participants.filter((p) => p.id !== editor.participant?.id).map((p) => p.name);
     const error = validateParticipantName(editor.name, others);
@@ -74,10 +71,11 @@ export default function MembersTab() {
       setEditor((e) => ({ ...e, error }));
       return;
     }
+    const name = editor.name.trim();
     if (editor.mode === 'add') {
-      addParticipant(tripId, editor.name).catch(reportFailure);
+      track(addParticipant(tripId, name), `Adding ${name}`);
     } else {
-      renameParticipant(tripId, editor.participant.id, editor.name).catch(reportFailure);
+      track(renameParticipant(tripId, editor.participant.id, name), `Renaming to ${name}`);
     }
     setEditor(null);
   }
@@ -85,7 +83,7 @@ export default function MembersTab() {
   function confirmRemove() {
     // Re-check: an expense may have been added since the menu opened.
     if (expenseCountFor(removing.id, expenses) === 0) {
-      removeParticipant(tripId, removing.id).catch(reportFailure);
+      track(removeParticipant(tripId, removing.id), `Removing ${removing.name}`);
     } else {
       setNotice(`${removing.name} is in an expense now, so they can’t be removed.`);
     }

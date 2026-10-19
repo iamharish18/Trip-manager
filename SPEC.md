@@ -262,10 +262,12 @@ Example:
 
 - Firestore offline persistence is enabled: all reads come from the local cache and writes are queued.
 - Queued writes sync automatically when the connection returns.
-- The dashboard shows a **sync indicator**: Online · Offline · Pending changes.
-- Conflicting edits: latest edit wins.
-- Writes rejected by the server (trip locked) show a clear message to the user.
-- Actions that **require being online:** sign up / log in, create trip, join trip (claim), leave trip, close trip, reopen trip, delete trip.
+- **Sync icon** in the trip header: ☁✓ Synced · ☁↑ Saving… · ☁✕ Offline. Tapping it explains, e.g. "You're offline. 3 changes are saved on this phone and will upload when you're back online."
+- **Offline banner** on Home and trip screens: "You're offline · changes will sync later".
+- How it knows (free, no extra native package): Firestore reports whether data came only from the phone (offline) and which changes are still waiting to upload.
+- Conflicting edits: latest edit wins, with no extra UI.
+- **Writes rejected by the server** show a clear message while the app is open, e.g. "Your expense 'Dinner' wasn't saved: the trip was closed." Limitation: a change rejected after the app was fully closed and reopened can't be reported (it simply disappears).
+- Actions that **require being online:** sign up / log in, create trip, join trip (claim), leave trip, close trip, reopen trip, delete trip. Offline, they say so at once ("You're offline. Creating a trip needs internet.") instead of waiting.
 
 ---
 

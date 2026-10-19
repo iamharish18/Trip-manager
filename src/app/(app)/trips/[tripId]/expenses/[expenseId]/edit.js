@@ -6,13 +6,15 @@ import ComingSoon from '@/components/ComingSoon';
 import ExpenseForm from '@/components/ExpenseForm';
 import FormScreen from '@/components/FormScreen';
 import ReadOnlyNotice from '@/components/ReadOnlyNotice';
+import { findCategory } from '@/logic/categories';
+import { expenseWhat } from '@/logic/sync';
 import { updateExpense } from '@/services/expenses';
 import { useTrip } from '@/state/trips';
 
 export default function EditExpenseScreen() {
   const router = useRouter();
   const { expenseId } = useLocalSearchParams();
-  const { tripId, expenses, canWrite } = useTrip();
+  const { tripId, expenses, customCategories, canWrite, track } = useTrip();
   const expense = expenses.find((e) => e.id === expenseId);
 
   if (!expense) {
@@ -36,7 +38,11 @@ export default function EditExpenseScreen() {
   }
 
   function save(values) {
-    updateExpense(tripId, expense.id, values).catch(() => {});
+    const category = findCategory(values.categoryId, customCategories);
+    track(
+      updateExpense(tripId, expense.id, values),
+      expenseWhat(values.description, category.name, { change: true }),
+    );
     router.back();
   }
 

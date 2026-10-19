@@ -152,6 +152,13 @@ jest.mock('@/services/lifecycle', () => ({
   reopenTrip: () => Promise.resolve({}),
   markSettlement: () => Promise.resolve(),
 }));
+let mockOffline = false;
+jest.mock('@/services/connection', () => ({
+  subscribeToConnection: (uid, onChange) => {
+    onChange(mockOffline);
+    return () => {};
+  },
+}));
 let mockComments = [];
 jest.mock('@/services/comments', () => ({
   subscribeToComments: (tripId, onChange) => {
@@ -205,6 +212,7 @@ describe('when logged in', () => {
     mockComments = [];
     mockPermission = 'undetermined';
     mockRequestPermission.mockClear();
+    mockOffline = false;
   });
 
   it('opens on Home with the trip list', async () => {
@@ -401,6 +409,27 @@ describe('when logged in', () => {
     expect(screen.getByText('Trip is final')).toBeTruthy();
     expect(screen.getByText('Earlier payments')).toBeTruthy();
     expect(screen.getByText('Everyone’s settled up. Nothing to pay.')).toBeTruthy();
+  });
+
+  it('shows Synced in the trip header when everything is saved', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t1' });
+    expect(screen.getByLabelText('Sync status: Synced')).toBeTruthy();
+    expect(screen.queryByText('You’re offline · changes will sync later')).toBeNull();
+  });
+
+  it('shows Saving… while changes are waiting to upload', async () => {
+    mockExpenses = [{ ...cabExpense, pending: true }];
+    await renderRouter('./src/app', { initialUrl: '/trips/t1' });
+    expect(screen.getByLabelText('Sync status: Saving…')).toBeTruthy();
+  });
+
+  it('shows the offline banner and icon when offline', async () => {
+    mockOffline = true;
+    await renderRouter('./src/app', { initialUrl: '/trips/t1' });
+    expect(
+      await screen.findByText('You’re offline · changes will sync later', {}, { timeout: 6000 }),
+    ).toBeTruthy();
+    expect(screen.getByLabelText('Sync status: Offline')).toBeTruthy();
   });
 
   it('opens Join trip from its route', async () => {

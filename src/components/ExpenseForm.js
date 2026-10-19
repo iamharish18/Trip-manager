@@ -38,7 +38,7 @@ function splitPreview(amountText, splitPids, payerPid, participants) {
 export default function ExpenseForm({ initial, splitPids, onSave, saveLabel }) {
   const theme = useAppTheme();
   const { user } = useSession();
-  const { tripId, participants, customCategories, me } = useTrip();
+  const { tripId, participants, customCategories, me, track } = useTrip();
 
   const [amountText, setAmountText] = useState(
     initial?.amount ? groupIndian(String(initial.amount)) : '',
@@ -69,7 +69,7 @@ export default function ExpenseForm({ initial, splitPids, onSave, saveLabel }) {
       return;
     }
     const { id, saved } = addCategory(tripId, user.uid, newCategory.name);
-    saved.catch(() => {});
+    track(saved, `Your category “${newCategory.name.trim()}”`);
     setCategoryId(id);
     setNewCategory(null);
   }

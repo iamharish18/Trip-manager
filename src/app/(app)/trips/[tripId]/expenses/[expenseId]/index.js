@@ -14,6 +14,7 @@ import { formatDate } from '@/logic/dates';
 import { formatRupees } from '@/logic/format';
 import { splitEqually } from '@/logic/money';
 import { payerLabel } from '@/logic/position';
+import { expenseWhat } from '@/logic/sync';
 import { setExpenseDeleted } from '@/services/expenses';
 import { useTrip } from '@/state/trips';
 import { useAppTheme } from '@/theme';
@@ -22,8 +23,16 @@ export default function ExpenseDetailScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { expenseId } = useLocalSearchParams();
-  const { tripId, expenses, participants, customCategories, me, canWrite, setDeletedExpenseId } =
-    useTrip();
+  const {
+    tripId,
+    expenses,
+    participants,
+    customCategories,
+    me,
+    canWrite,
+    setDeletedExpenseId,
+    track,
+  } = useTrip();
   const expense = expenses.find((e) => e.id === expenseId);
 
   if (!expense) {
@@ -45,7 +54,10 @@ export default function ExpenseDetailScreen() {
   const even = Object.values(shares).every((s) => s === base);
 
   function remove() {
-    setExpenseDeleted(tripId, expense.id, true).catch(() => {});
+    track(
+      setExpenseDeleted(tripId, expense.id, true),
+      expenseWhat(expense.description, category.name, { change: true }),
+    );
     // The Expenses tab offers Undo for a few seconds.
     setDeletedExpenseId(expense.id);
     router.back();

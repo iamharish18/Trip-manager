@@ -1,7 +1,7 @@
 // Live trip data for screens. Values come from Firestore's offline cache
 // first, so they work without internet.
 
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 import { activeExpenses } from '@/logic/money';
 import { isReopenWindowOpen, isSettling, isTripOpen, reopenEndsAt } from '@/logic/trips';
@@ -11,6 +11,7 @@ import { finaliseIfExpired, subscribeToSettlements } from '@/services/lifecycle'
 import { notifyTripEvent } from '@/services/notifications';
 import { subscribeToMyTrips, subscribeToParticipants, subscribeToTrip } from '@/services/trips';
 import { useSession } from '@/state/session';
+import { useSync } from '@/state/sync';
 
 // Keeps `{ key, value }` so a value from a previous key is never shown.
 function useKeyedSubscription(key, subscribe) {
@@ -80,6 +81,19 @@ export function TripProvider({ tripId, children }) {
 
   const trip = tripState.value ?? null;
   const now = useNow(trip?.status === 'reopened');
+  const { trackWrite } = useSync();
+
+  // Whether the trip is locked right now, for messages about changes the
+  // server rejected later (SPEC §12).
+  const lockedRef = useRef(false);
+  const locked = isSettling(trip, now);
+  useEffect(() => {
+    lockedRef.current = locked;
+  }, [locked]);
+  const track = useCallback(
+    (promise, what) => trackWrite(promise, what, () => lockedRef.current),
+    [trackWrite],
+  );
   const allExpenses = expensesState.value ?? [];
   const isOpen = isTripOpen(trip, now);
   const isMember = Boolean(trip && user && trip.memberUids?.includes(user.uid));
@@ -117,11 +131,25 @@ export function TripProvider({ tripId, children }) {
     isCreator: Boolean(trip && user && trip.creatorUid === user.uid),
     isOpen,
     // Closed for settling up (Closed, Final, or a reopen that ran out).
-    isSettling: isSettling(trip, now),
+    isSettling: locked,
+    // Reports it if the server later rejects this change, e.g.
+    // track(updateExpense(...), 'Your expense “Dinner”').
+    track,
     // When a reopened trip locks again (ms), and the current time.
     reopenEndsAt: reopenEndsAt(trip),
     now,
     settlements: settlementsState.value ?? [],
+    // Changes on this trip still waiting to upload (SPEC §12).
+    pendingCount: [
+      trip ? [trip] : [],
+      participants,
+      allExpenses,
+      categoriesState.value ?? [],
+      commentsState.value ?? [],
+      settlementsState.value ?? [],
+    ]
+      .flat()
+      .filter((item) => item.pending).length,
     // Can add, edit and delete expenses and categories (SPEC §6).
     canWrite: isOpen && isMember,
     deletedExpenseId,

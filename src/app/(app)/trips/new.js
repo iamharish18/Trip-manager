@@ -23,12 +23,14 @@ import {
 } from '@/logic/validation';
 import { createTrip } from '@/services/trips';
 import { useSession } from '@/state/session';
+import { useSync } from '@/state/sync';
 import { useAppTheme } from '@/theme';
 
 export default function NewTripScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { user, displayName } = useSession();
+  const { requireOnline } = useSync();
   const creatorName = displayName.trim() || 'Me';
 
   const [name, setName] = useState('');
@@ -78,6 +80,7 @@ export default function NewTripScreen() {
 
     setSubmitting(true);
     try {
+      requireOnline('createTrip');
       const tripId = await createTrip({
         uid: user.uid,
         creatorName,

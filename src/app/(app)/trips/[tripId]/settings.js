@@ -23,6 +23,7 @@ import {
 import { leaveTrip } from '@/services/join';
 import { updateTripDetails } from '@/services/trips';
 import { useSession } from '@/state/session';
+import { useSync } from '@/state/sync';
 import { useTrip } from '@/state/trips';
 import { useAppTheme } from '@/theme';
 
@@ -65,6 +66,7 @@ function LeaveTrip() {
   const router = useRouter();
   const { user } = useSession();
   const { tripId, trip, me } = useTrip();
+  const { requireOnline } = useSync();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -73,6 +75,7 @@ function LeaveTrip() {
     setBusy(true);
     setError(null);
     try {
+      requireOnline('leaveTrip');
       await leaveTrip(tripId, me.id, user.uid);
       router.replace('/home');
     } catch (err) {
@@ -130,7 +133,7 @@ function LeaveTrip() {
 export default function TripSettingsScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { trip, tripId, isCreator, isOpen, me } = useTrip();
+  const { trip, tripId, isCreator, isOpen, me, track } = useTrip();
 
   const [name, setName] = useState(trip.name);
   const [startDate, setStartDate] = useState(trip.startDate);
@@ -148,9 +151,9 @@ export default function TripSettingsScreen() {
     setErrors(found);
     if (Object.keys(found).length) return;
 
-    // Applies to the local cache at once, also offline. The rules match the
-    // checks above, so the server has no reason to reject it.
-    updateTripDetails(tripId, { name, startDate, endDate }).catch(() => {});
+    // Applies to the local cache at once, also offline; reported if the
+    // server later rejects it (e.g. the trip was closed meanwhile).
+    track(updateTripDetails(tripId, { name, startDate, endDate }), 'Your change to the trip');
     router.back();
   }
 

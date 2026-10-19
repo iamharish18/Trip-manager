@@ -17,7 +17,7 @@ import {
 import { samePlan, settlementPlan } from '@/logic/settlements';
 import { isReopenWindowOpen } from '@/logic/trips';
 
-import { db, docExists } from './firebase';
+import { WITH_PENDING, db, docExists, withPending } from './firebase';
 
 const fail = (code, message) => Object.assign(new Error(message), { code });
 
@@ -158,7 +158,8 @@ export function markSettlement(tripId, settlementId, isPaid, uid) {
 export function subscribeToSettlements(tripId, onChange, onError) {
   return onSnapshot(
     settlementsRef(tripId),
-    (snapshot) => onChange(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    WITH_PENDING,
+    (snapshot) => onChange(snapshot.docs.map(withPending)),
     onError,
   );
 }

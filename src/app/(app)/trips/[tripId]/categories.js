@@ -21,7 +21,7 @@ const usageLabel = (count) =>
 export default function CategoriesScreen() {
   const theme = useAppTheme();
   const { user } = useSession();
-  const { tripId, expenses, customCategories, canWrite } = useTrip();
+  const { tripId, expenses, customCategories, canWrite, track } = useTrip();
   const [adding, setAdding] = useState(null); // { name, error }
   const [deleting, setDeleting] = useState(null);
   const [notice, setNotice] = useState('');
@@ -41,12 +41,15 @@ export default function CategoriesScreen() {
       setAdding((a) => ({ ...a, error }));
       return;
     }
-    addCategory(tripId, user.uid, adding.name).saved.catch(() => {});
+    track(
+      addCategory(tripId, user.uid, adding.name).saved,
+      `Your category “${adding.name.trim()}”`,
+    );
     setAdding(null);
   }
 
   function confirmDelete() {
-    deleteCategory(tripId, deleting.id).catch(() => {});
+    track(deleteCategory(tripId, deleting.id), `Deleting “${deleting.name}”`);
     setDeleting(null);
   }
 
