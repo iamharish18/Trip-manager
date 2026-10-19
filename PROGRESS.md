@@ -15,8 +15,8 @@
 | M5 | Multi-user: join, claim, leave | ✅ Done | [#6](https://github.com/iamharish18/Trip-manager/pull/6) |
 | M6 | Comments | ✅ Done | [#7](https://github.com/iamharish18/Trip-manager/pull/7) |
 | M7 | Notifications | ✅ Done | [#8](https://github.com/iamharish18/Trip-manager/pull/8) |
-| M8 | Trip lifecycle and settlements | ⏭️ Next | — |
-| M9 | Offline hardening | ⏳ Not started | — |
+| M8 | Trip lifecycle and settlements | ✅ Done | [#9](https://github.com/iamharish18/Trip-manager/pull/9) |
+| M9 | Offline hardening | ⏭️ Next | — |
 | M10 | PDF export and trip deletion | ⏳ Not started | — |
 | M11 | Polish and release | ⏳ Not started | — |
 
@@ -83,6 +83,12 @@ Decisions agreed in discussion, by milestone. SPEC.md holds the full rules; this
 - Each expense notifies at most once (`notifyPending`); missed ones are sent the next time the adder opens the app online.
 - **On by default:** Android's permission prompt appears right after login (no in-app card). Account has an on/off switch; tap opens the expense; banners show while the app is open.
 - **Needs a new dev build** (expo-notifications) and **FCM V1 credentials uploaded to EAS** (one-time; see "Push notification credentials" below).
+
+### M8 — Close, reopen and settle up
+- Free plan: the creator's phone closes the trip and writes settlements in one write, then double-checks; the 24-hour reopen window is enforced by rules using the server clock.
+- If the 24 hours run out, whoever opens the trip first finalises it.
+- Close, final close and reopen notify everyone (personalised "You owe…" messages); tap opens Balances.
+- Paid can be undone by the same people; "Everyone's settled up" when there's nothing to pay.
 
 ---
 

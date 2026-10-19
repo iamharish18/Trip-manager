@@ -1,13 +1,56 @@
-import { isTripOpen, participantStatus, peopleLabel, sortParticipants, sortTrips } from './trips';
+import {
+  formatTimeLeft,
+  isSettling,
+  isTripOpen,
+  participantStatus,
+  peopleLabel,
+  reopenEndsAt,
+  sortParticipants,
+  sortTrips,
+} from './trips';
 
 const at = (ms) => ({ toMillis: () => ms });
 
 describe('isTripOpen', () => {
-  it('is open while active or reopened', () => {
+  const HOUR = 60 * 60 * 1000;
+  const reopened = (hoursAgo, now) => ({
+    status: 'reopened',
+    reopenedAt: { toMillis: () => now - hoursAgo * HOUR },
+  });
+
+  it('is open while active, or reopened within 24 hours', () => {
+    const now = Date.now();
     expect(isTripOpen({ status: 'active' })).toBe(true);
-    expect(isTripOpen({ status: 'reopened' })).toBe(true);
+    expect(isTripOpen(reopened(23, now), now)).toBe(true);
+    expect(isTripOpen(reopened(25, now), now)).toBe(false);
     expect(isTripOpen({ status: 'closed' })).toBe(false);
+    expect(isTripOpen({ status: 'final' })).toBe(false);
     expect(isTripOpen(null)).toBe(false);
+  });
+
+  it('treats a reopen not yet confirmed by the server as open', () => {
+    expect(isTripOpen({ status: 'reopened', reopenedAt: null })).toBe(true);
+  });
+
+  it('settles up whenever it is not open', () => {
+    const now = Date.now();
+    expect(isSettling({ status: 'closed' })).toBe(true);
+    expect(isSettling(reopened(25, now), now)).toBe(true);
+    expect(isSettling(reopened(1, now), now)).toBe(false);
+    expect(isSettling(null)).toBe(false);
+  });
+
+  it('knows when a reopen ends', () => {
+    expect(reopenEndsAt({ reopenedAt: { toMillis: () => 0 } })).toBe(24 * HOUR);
+    expect(reopenEndsAt({ status: 'active' })).toBeNull();
+  });
+});
+
+describe('formatTimeLeft', () => {
+  it('shows hours and minutes', () => {
+    expect(formatTimeLeft((23 * 60 + 12) * 60000)).toBe('23 h 12 m');
+    expect(formatTimeLeft(45 * 60000 + 30000)).toBe('45 m');
+    expect(formatTimeLeft(30000)).toBe('less than a minute');
   });
 });
 

@@ -36,8 +36,61 @@ const mockJoinedParticipants = [
   { id: 'q1', name: 'Rahul', claimedByUid: 'u1', addedAt: null },
   { id: 'q3', name: 'Priya', claimedByUid: null, leftAt: { seconds: 1 }, addedAt: null },
 ];
-const mockTrips = { t1: mockTrip, t2: mockJoinedTrip };
-const mockPeople = { t1: mockParticipants, t2: mockJoinedParticipants };
+// The same trip after closing (t3), while reopened (t4) and once final (t5).
+const mockHoursAgo = (h) => ({ toMillis: () => Date.now() - h * 60 * 60 * 1000 });
+const mockClosedTrip = { ...mockTrip, id: 't3', status: 'closed' };
+const mockReopenedTrip = {
+  ...mockTrip,
+  id: 't4',
+  status: 'reopened',
+  reopenUsed: true,
+  reopenedAt: mockHoursAgo(1),
+};
+const mockFinalTrip = {
+  ...mockTrip,
+  id: 't5',
+  status: 'final',
+  reopenUsed: true,
+  reopenedAt: mockHoursAgo(30),
+};
+const mockTrips = {
+  t1: mockTrip,
+  t2: mockJoinedTrip,
+  t3: mockClosedTrip,
+  t4: mockReopenedTrip,
+  t5: mockFinalTrip,
+};
+const mockPeople = {
+  t1: mockParticipants,
+  t2: mockJoinedParticipants,
+  t3: mockParticipants,
+  t4: mockParticipants,
+  t5: mockParticipants,
+};
+const mockSettlements = {
+  t3: [
+    {
+      id: 's1',
+      fromPid: 'p2',
+      toPid: 'p1',
+      amount: 600,
+      round: 1,
+      isPaid: false,
+      isRecordedPayment: false,
+    },
+  ],
+  t5: [
+    {
+      id: 's0',
+      fromPid: 'p2',
+      toPid: 'p1',
+      amount: 600,
+      round: 1,
+      isPaid: true,
+      isRecordedPayment: true,
+    },
+  ],
+};
 let mockExpenses = [];
 const mockCategories = [{ id: 'c-fuel', name: 'Fuel', createdAt: null }];
 const cabExpense = {
@@ -87,6 +140,17 @@ jest.mock('@/services/notifications', () => ({
   catchUpNotifications: () => Promise.resolve(),
   listenForTaps: () => () => {},
   notifyNewExpense: () => Promise.resolve(),
+  notifyTripEvent: () => Promise.resolve(),
+}));
+jest.mock('@/services/lifecycle', () => ({
+  subscribeToSettlements: (tripId, onChange) => {
+    onChange(mockSettlements[tripId] ?? []);
+    return () => {};
+  },
+  finaliseIfExpired: () => Promise.resolve(null),
+  closeTrip: () => Promise.resolve({ status: 'closed', settlements: [] }),
+  reopenTrip: () => Promise.resolve({}),
+  markSettlement: () => Promise.resolve(),
 }));
 let mockComments = [];
 jest.mock('@/services/comments', () => ({
@@ -302,6 +366,41 @@ describe('when logged in', () => {
     await renderRouter('./src/app', { initialUrl: '/account' });
     expect(await screen.findByLabelText('Notifications')).toBeTruthy();
     expect(screen.getByText('When friends add expenses to your trips')).toBeTruthy();
+  });
+
+  it('offers Close trip to the creator of an Active trip', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t1/settings' });
+    expect(screen.getAllByText('Close trip').length).toBeGreaterThan(0);
+  });
+
+  it('shows Settle up on a closed trip, with Mark paid', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t3/balances' });
+    expect(screen.getByText('Trip closed')).toBeTruthy();
+    expect(screen.getByText('Settle up · 0 of 1 paid')).toBeTruthy();
+    expect(screen.getByText('Mark paid')).toBeTruthy();
+    expect(screen.queryByText('Who pays whom appears when the trip is closed.')).toBeNull();
+  });
+
+  it('locks a closed trip: no + button, Reopen offered', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t3' });
+    expect(screen.queryByLabelText('Add expense')).toBeNull();
+    await renderRouter('./src/app', { initialUrl: '/trips/t3/settings' });
+    expect(screen.getByText('Reopen for 24 hours')).toBeTruthy();
+  });
+
+  it('shows the countdown while reopened, and Close now', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t4' });
+    expect(screen.getByText(/Reopened · locks again in 2[23] h/)).toBeTruthy();
+    expect(screen.getByLabelText('Add expense')).toBeTruthy();
+    await renderRouter('./src/app', { initialUrl: '/trips/t4/settings' });
+    expect(screen.getAllByText('Close now').length).toBeGreaterThan(0);
+  });
+
+  it('shows a final trip with earlier payments and nothing left to pay', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t5/balances' });
+    expect(screen.getByText('Trip is final')).toBeTruthy();
+    expect(screen.getByText('Earlier payments')).toBeTruthy();
+    expect(screen.getByText('Everyone’s settled up. Nothing to pay.')).toBeTruthy();
   });
 
   it('opens Join trip from its route', async () => {

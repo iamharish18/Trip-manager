@@ -69,8 +69,15 @@ service cloud.firestore {
         && (data.endDate == null || (isIsoDate(data.endDate) && data.endDate >= data.startDate));
     }
 
+    // Open for changes: Active, or Reopened within 24 hours of reopening
+    // (checked against the server's clock, SPEC §9).
+    function reopenWindowOpen(trip) {
+      return trip.data.status == 'reopened'
+        && request.time < trip.data.reopenedAt + duration.value(24, 'h');
+    }
+
     function editable(trip) {
-      return trip.data.status in ['active', 'reopened'];
+      return trip.data.status == 'active' || reopenWindowOpen(trip);
     }
 
     match /trips/{tripId} {
@@ -121,7 +128,40 @@ service cloud.firestore {
           && request.resource.data.memberUids == resource.data.memberUids.removeAll([request.auth.uid]);
       }
 
-      allow update: if signedIn() && (editsDetails() || joins() || leaves());
+      // Closing (creator): Active → Closed, or Reopened → Final.
+      function closes() {
+        return resource.data.creatorUid == request.auth.uid
+          && (
+            (resource.data.status == 'active' && request.resource.data.status == 'closed')
+            || (resource.data.status == 'reopened' && request.resource.data.status == 'final')
+          )
+          && request.resource.data.closedAt == request.time
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'closedAt']);
+      }
+
+      // Reopening (creator, once): Closed → Reopened for 24 hours.
+      function reopens() {
+        return resource.data.creatorUid == request.auth.uid
+          && resource.data.status == 'closed'
+          && resource.data.get('reopenUsed', false) == false
+          && request.resource.data.status == 'reopened'
+          && request.resource.data.reopenUsed == true
+          && request.resource.data.reopenedAt == request.time
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reopenUsed', 'reopenedAt']);
+      }
+
+      // Finalising (any member) once the 24-hour reopen window has passed.
+      function finalisesAfterWindow() {
+        return request.auth.uid in resource.data.memberUids
+          && resource.data.status == 'reopened'
+          && !reopenWindowOpen(resource)
+          && request.resource.data.status == 'final'
+          && request.resource.data.closedAt == request.time
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'closedAt']);
+      }
+
+      allow update: if signedIn()
+        && (editsDetails() || joins() || leaves() || closes() || reopens() || finalisesAfterWindow());
 
       allow delete: if false;
 
@@ -295,6 +335,86 @@ service cloud.firestore {
 
         // Deleting is a soft delete (isDeleted), never a real one.
         allow delete: if false;
+      }
+
+      // ---- Settlements (SPEC §9) ----
+
+      function isLocked(trip) {
+        return trip.data.status in ['closed', 'final'];
+      }
+
+      // This write closes the trip (Active → Closed or Reopened → Final).
+      function closingNow() {
+        return !isLocked(trip()) && isLocked(tripAfter());
+      }
+
+      // Shortly after a close, settlements of that close may be recalculated
+      // (the closer's double-check), as long as none is marked paid.
+      function justClosed() {
+        return isLocked(trip()) && request.time < trip().data.closedAt + duration.value(5, 'm');
+      }
+
+      // This write reopens the trip (Closed → Reopened).
+      function reopeningNow() {
+        return trip().data.status == 'closed' && tripAfter().data.status == 'reopened';
+      }
+
+      function claimedBy(pid) {
+        return get(/databases/$(database)/documents/trips/$(tripId)/participants/$(pid)).data.claimedByUid;
+      }
+
+      match /settlements/{sid} {
+        allow read: if isMember();
+
+        allow create: if isMember()
+          && (closingNow() || justClosed())
+          && request.resource.data.keys().hasOnly(
+               ['fromPid', 'toPid', 'amount', 'round', 'isPaid', 'isRecordedPayment', 'markedByUid', 'markedAt', 'createdAt'])
+          && request.resource.data.keys().hasAll(
+               ['fromPid', 'toPid', 'amount', 'round', 'isPaid', 'isRecordedPayment', 'markedByUid', 'markedAt', 'createdAt'])
+          && request.resource.data.fromPid is string
+          && request.resource.data.toPid is string
+          && request.resource.data.fromPid != request.resource.data.toPid
+          && request.resource.data.amount is int
+          && request.resource.data.amount >= 1
+          && request.resource.data.round == (tripAfter().data.status == 'closed' ? 1 : 2)
+          && request.resource.data.isPaid == false
+          && request.resource.data.isRecordedPayment == false
+          && request.resource.data.markedByUid == null
+          && request.resource.data.markedAt == null
+          && request.resource.data.createdAt == request.time;
+
+        // Mark paid / not paid: the payer, the receiver, or the creator,
+        // while the trip is closed. Earlier (recorded) payments are fixed.
+        function marksPaid() {
+          return isLocked(trip())
+            && resource.data.isRecordedPayment == false
+            && request.resource.data.isPaid is bool
+            && request.resource.data.markedByUid == request.auth.uid
+            && request.resource.data.markedAt == request.time
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isPaid', 'markedByUid', 'markedAt'])
+            && (request.auth.uid == trip().data.creatorUid
+                || claimedBy(resource.data.fromPid) == request.auth.uid
+                || claimedBy(resource.data.toPid) == request.auth.uid);
+        }
+
+        // On reopen, payments marked paid are kept as recorded payments.
+        function recordsOnReopen() {
+          return reopeningNow()
+            && trip().data.creatorUid == request.auth.uid
+            && resource.data.isPaid == true
+            && request.resource.data.isRecordedPayment == true
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRecordedPayment']);
+        }
+
+        allow update: if isMember() && (marksPaid() || recordsOnReopen());
+
+        // Unpaid settlements are discarded on reopen, or replaced by the
+        // closer's double-check right after a close.
+        allow delete: if isMember()
+          && resource.data.isPaid == false
+          && resource.data.isRecordedPayment == false
+          && ((reopeningNow() && trip().data.creatorUid == request.auth.uid) || justClosed());
       }
 
       // ---- Push addresses (SPEC §11) ----

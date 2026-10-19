@@ -45,6 +45,10 @@ const MESSAGES = {
   'join/already-member': { field: null, message: 'You’re already on this trip.' },
   'leave/closed': { field: null, message: 'This trip is closed, so you can’t leave it.' },
   'leave/creator': { field: null, message: 'The trip’s creator can’t leave it.' },
+  'close/already': { field: null, message: 'This trip is already closed.' },
+  'reopen/not-closed': { field: null, message: 'Only a closed trip can be reopened.' },
+  'reopen/used': { field: null, message: 'This trip has already been reopened once.' },
+  'trips/not-found': { field: null, message: 'This trip no longer exists.' },
 };
 
 const FALLBACK = { field: null, message: 'Something went wrong. Try again.' };
