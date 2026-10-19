@@ -61,7 +61,7 @@ function SettlementRow({ settlement, nameOf, mePid, canMark, onToggle }) {
 export default function SettleUp() {
   const theme = useAppTheme();
   const { user } = useSession();
-  const { trip, tripId, participants, settlements, me, isCreator } = useTrip();
+  const { trip, tripId, participants, settlements, me, isCreator, track } = useTrip();
 
   const nameOf = (pid) => participants.find((p) => p.id === pid)?.name ?? 'Someone';
   const claimedBy = (pid) => participants.find((p) => p.id === pid)?.claimedByUid;
@@ -77,7 +77,7 @@ export default function SettleUp() {
 
   function toggle(s) {
     // Works offline; syncs later.
-    markSettlement(tripId, s.id, !s.isPaid, user.uid).catch(() => {});
+    track(markSettlement(tripId, s.id, !s.isPaid, user.uid), 'Marking the payment');
   }
 
   return (

@@ -54,5 +54,7 @@ const MESSAGES = {
 const FALLBACK = { field: null, message: 'Something went wrong. Try again.' };
 
 export function describeError(error) {
+  // Errors created by the app itself can carry their own message.
+  if (error?.userMessage) return { field: null, message: error.userMessage };
   return MESSAGES[error?.code] ?? FALLBACK;
 }

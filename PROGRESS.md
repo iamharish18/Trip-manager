@@ -16,7 +16,7 @@
 | M6 | Comments | ✅ Done | [#7](https://github.com/iamharish18/Trip-manager/pull/7) |
 | M7 | Notifications | ✅ Done | [#8](https://github.com/iamharish18/Trip-manager/pull/8) |
 | M8 | Trip lifecycle and settlements | ✅ Done | [#9](https://github.com/iamharish18/Trip-manager/pull/9) |
-| M9 | Offline hardening | ⏭️ Next | — |
+| M9 | Offline hardening | 🧪 Built, testing on phones | — |
 | M10 | PDF export and trip deletion | ⏳ Not started | — |
 | M11 | Polish and release | ⏳ Not started | — |
 
@@ -90,6 +90,13 @@ Decisions agreed in discussion, by milestone. SPEC.md holds the full rules; this
 - Close, final close and reopen notify everyone (personalised "You owe…" messages); tap opens Balances.
 - Paid can be undone by the same people; "Everyone's settled up" when there's nothing to pay.
 
+### M9 — Offline hardening
+- Offline status comes from Firestore itself (no new build): sync icon in the trip header, offline banner on Home and trip screens.
+- Rejected changes are reported while the app is open; after a full restart they can't be (accepted limitation).
+- Online-only actions say "needs internet" at once; buttons stay tappable.
+- Latest edit wins, no conflict UI.
+- **For M11:** expo-doctor reports patch updates (expo 58.0.15, expo-asset 58.0.17, expo-router 58.0.24). Upgrade them together with a new dev build in M11.
+
 ---
 
 ## Running the app
@@ -121,6 +128,21 @@ npm start
 | `npm run lint` | Code problems |
 | `npx prettier --check .` | Formatting |
 | `npx expo-doctor` | Expo dependency and config problems |
+
+## Manual offline checklist (M9)
+
+Run on two phones (A and B) with a shared test trip. "Airplane mode" means Wi-Fi and mobile data off.
+
+| # | Steps | Expected |
+|---|---|---|
+| 1 | A: airplane mode on, wait 5 s | Offline banner on Home and the trip; header icon ☁✕ "Offline" |
+| 2 | A (offline): add an expense, a comment, a category; edit and delete an expense | All appear at once; icon tap says "N changes are saved on this phone…"; the comment shows "Sending…" |
+| 3 | A: airplane mode off | Banner disappears; icon goes ☁↑ then ☁✓; B sees all changes; B gets the expense notification |
+| 4 | A (offline): Create trip, Join trip, Leave, Close, Reopen | Each says "You're offline. … needs internet." at once |
+| 5 | A and B (both offline): edit the same expense differently, then both go online | The later edit wins on both phones |
+| 6 | A offline: add an expense. B (creator, online): close the trip. A: back online with the app open | A sees "Your expense "…" wasn't saved: the trip was closed." and the expense disappears |
+| 7 | Same as 6, but A fully closes the app before going online | The expense just disappears (accepted limitation) |
+| 8 | Log out and back in while offline | Logging in needs internet (Firebase message); staying logged in works offline |
 
 ## Deploying security rules
 

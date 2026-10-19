@@ -49,7 +49,7 @@ function CommentItem({ comment, authorName, isMine, canDelete, onDelete }) {
 export default function CommentsSection({ expenseId }) {
   const theme = useAppTheme();
   const { user } = useSession();
-  const { tripId, comments, participants, me, canWrite } = useTrip();
+  const { tripId, comments, participants, me, canWrite, track } = useTrip();
   const [draft, setDraft] = useState('');
   const [error, setError] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -65,18 +65,21 @@ export default function CommentsSection({ expenseId }) {
       return;
     }
     // Shows at once (with "Sending…"), also offline.
-    addComment(tripId, {
-      expenseId,
-      text: draft,
-      authorUid: user.uid,
-      authorPid: me.id,
-    }).catch(() => {});
+    track(
+      addComment(tripId, {
+        expenseId,
+        text: draft,
+        authorUid: user.uid,
+        authorPid: me.id,
+      }),
+      'Your comment',
+    );
     setDraft('');
     setError(null);
   }
 
   function confirmDelete() {
-    deleteComment(tripId, deleting.id).catch(() => {});
+    track(deleteComment(tripId, deleting.id), 'Deleting your comment');
     setDeleting(null);
   }
 

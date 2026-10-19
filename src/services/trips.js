@@ -15,7 +15,7 @@ import {
 
 import { generateJoinCode } from '@/logic/joinCode';
 
-import { db, docExists } from './firebase';
+import { WITH_PENDING, db, docExists, withPending } from './firebase';
 
 const MAX_CODE_ATTEMPTS = 5;
 
@@ -103,10 +103,13 @@ export function subscribeToMyTrips(uid, onChange, onError) {
   );
 }
 
+// The trip and its people also say whether changes are still uploading
+// (`pending`), for the sync icon (SPEC §12).
 export function subscribeToTrip(tripId, onChange, onError) {
   return onSnapshot(
     tripRef(tripId),
-    (snapshot) => onChange(docExists(snapshot) ? { id: snapshot.id, ...snapshot.data() } : null),
+    WITH_PENDING,
+    (snapshot) => onChange(docExists(snapshot) ? withPending(snapshot) : null),
     onError,
   );
 }
@@ -114,7 +117,8 @@ export function subscribeToTrip(tripId, onChange, onError) {
 export function subscribeToParticipants(tripId, onChange, onError) {
   return onSnapshot(
     participantsRef(tripId),
-    (snapshot) => onChange(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    WITH_PENDING,
+    (snapshot) => onChange(snapshot.docs.map(withPending)),
     onError,
   );
 }

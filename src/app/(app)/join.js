@@ -17,6 +17,7 @@ import { sortParticipants } from '@/logic/trips';
 import { MAX_PARTICIPANTS, validateParticipantName } from '@/logic/validation';
 import { claimSpot, joinAsNewPerson, lookupTrip } from '@/services/join';
 import { useSession } from '@/state/session';
+import { useSync } from '@/state/sync';
 import { useAppTheme } from '@/theme';
 
 const NEW_PERSON = 'new';
@@ -54,6 +55,7 @@ export default function JoinTripScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { user, displayName } = useSession();
+  const { requireOnline } = useSync();
 
   const [code, setCode] = useState('');
   const [found, setFound] = useState(null); // { tripId, trip, participants }
@@ -66,6 +68,7 @@ export default function JoinTripScreen() {
     setErrors({});
     setBusy(true);
     try {
+      requireOnline('joinTrip');
       const result = await lookupTrip(code, user.uid);
       if (result.isMember) {
         router.replace(`/trips/${result.tripId}`);
@@ -100,6 +103,7 @@ export default function JoinTripScreen() {
 
     setBusy(true);
     try {
+      requireOnline('joinTrip');
       if (choice === NEW_PERSON) await joinAsNewPerson(found.tripId, newName, user.uid);
       else await claimSpot(found.tripId, choice, user.uid);
       router.replace(`/trips/${found.tripId}`);

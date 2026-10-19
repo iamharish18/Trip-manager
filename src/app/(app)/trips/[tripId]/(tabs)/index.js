@@ -52,6 +52,7 @@ export default function ExpensesTab() {
     canWrite,
     deletedExpenseId,
     setDeletedExpenseId,
+    track,
   } = useTrip();
 
   const balances = computeBalances(expenses, participants);
@@ -60,7 +61,7 @@ export default function ExpensesTab() {
   const counts = commentCounts(comments);
 
   function undoDelete() {
-    setExpenseDeleted(tripId, deletedExpenseId, false).catch(() => {});
+    track(setExpenseDeleted(tripId, deletedExpenseId, false), 'Undoing the delete');
     setDeletedExpenseId(null);
   }
 

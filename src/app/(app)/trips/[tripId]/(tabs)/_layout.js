@@ -5,6 +5,8 @@ import { StyleSheet, View } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import OfflineBanner from '@/components/OfflineBanner';
+import SyncIcon from '@/components/SyncIcon';
 import { formatTripDates } from '@/logic/dates';
 import { formatTimeLeft, peopleLabel } from '@/logic/trips';
 import { useTrip } from '@/state/trips';
@@ -36,6 +38,7 @@ function TripHeader() {
           {formatTripDates(trip.startDate, trip.endDate)} · {peopleLabel(participants.length)}
         </Text>
       </View>
+      <SyncIcon />
       <IconButton
         icon="cog-outline"
         accessibilityLabel="Trip settings"
@@ -72,6 +75,7 @@ export default function TripTabsLayout() {
   return (
     <SafeAreaView style={[styles.fill, { backgroundColor: theme.app.background }]} edges={['top']}>
       <TripHeader />
+      <OfflineBanner style={styles.offline} />
       <ReopenedBanner />
       <Tabs
         screenOptions={{
@@ -108,6 +112,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingBottom: 4 },
   back: { marginRight: 0 },
   titles: { flex: 1, minWidth: 0 },
+  offline: { marginHorizontal: 16, marginBottom: 4 },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -11,6 +11,7 @@ import { describeError } from '@/logic/errors';
 import { closeTrip, reopenTrip } from '@/services/lifecycle';
 import { notifyTripEvent } from '@/services/notifications';
 import { useSession } from '@/state/session';
+import { useSync } from '@/state/sync';
 import { useTrip } from '@/state/trips';
 import { useAppTheme } from '@/theme';
 
@@ -46,6 +47,7 @@ export default function TripStatusActions() {
   const router = useRouter();
   const { user } = useSession();
   const { trip, tripId, isOpen } = useTrip();
+  const { requireOnline } = useSync();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -62,6 +64,7 @@ export default function TripStatusActions() {
     setBusy(true);
     setError(null);
     try {
+      requireOnline(action === 'reopen' ? 'reopenTrip' : 'closeTrip');
       if (action === 'reopen') {
         await reopenTrip(tripId);
         notifyTripEvent(tripId, user.uid, 'reopened').catch(() => {});
