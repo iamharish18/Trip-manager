@@ -15,8 +15,8 @@
 | M5 | Multi-user: join, claim, leave | ✅ Done | [#6](https://github.com/iamharish18/Trip-manager/pull/6) |
 | M6 | Comments | ✅ Done | [#7](https://github.com/iamharish18/Trip-manager/pull/7) |
 | M7 | Notifications | ✅ Done | [#8](https://github.com/iamharish18/Trip-manager/pull/8) |
-| M8 | Trip lifecycle and settlements | 🧪 Built, testing on phones | — |
-| M9 | Offline hardening | ⏳ Not started | — |
+| M8 | Trip lifecycle and settlements | ✅ Done | [#9](https://github.com/iamharish18/Trip-manager/pull/9) |
+| M9 | Offline hardening | ⏭️ Next | — |
 | M10 | PDF export and trip deletion | ⏳ Not started | — |
 | M11 | Polish and release | ⏳ Not started | — |
 
