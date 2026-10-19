@@ -16,8 +16,8 @@
 | M6 | Comments | ✅ Done | [#7](https://github.com/iamharish18/Trip-manager/pull/7) |
 | M7 | Notifications | ✅ Done | [#8](https://github.com/iamharish18/Trip-manager/pull/8) |
 | M8 | Trip lifecycle and settlements | ✅ Done | [#9](https://github.com/iamharish18/Trip-manager/pull/9) |
-| M9 | Offline hardening | 🧪 Built, testing on phones | — |
-| M10 | PDF export and trip deletion | ⏳ Not started | — |
+| M9 | Offline hardening | ✅ Done | [#10](https://github.com/iamharish18/Trip-manager/pull/10) |
+| M10 | PDF export and trip deletion | ⏭️ Next | — |
 | M11 | Polish and release | ⏳ Not started | — |
 
 ---
