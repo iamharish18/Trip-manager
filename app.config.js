@@ -41,6 +41,15 @@ module.exports = {
           ios: { useFrameworks: 'dynamic' },
         },
       ],
+      [
+        'expo-notifications',
+        {
+          // Small white status-bar icon, tinted teal.
+          icon: './assets/android-icon-monochrome.png',
+          color: '#0F766E',
+          defaultChannel: 'expenses',
+        },
+      ],
     ],
   },
 };

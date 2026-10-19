@@ -70,6 +70,18 @@ jest.mock('@/services/trips', () => ({
     return () => {};
   },
 }));
+let mockPermission = 'undetermined';
+jest.mock('@/services/notifications', () => ({
+  configureNotificationDisplay: () => {},
+  getPermission: () => Promise.resolve({ status: mockPermission, canAskAgain: true }),
+  requestPermission: () => Promise.resolve({ status: 'granted', canAskAgain: true }),
+  getPushToken: () => Promise.resolve('ExponentPushToken[test]'),
+  saveTokenToTrips: () => Promise.resolve(),
+  removeTokenFromTrips: () => Promise.resolve(),
+  catchUpNotifications: () => Promise.resolve(),
+  listenForTaps: () => () => {},
+  notifyNewExpense: () => Promise.resolve(),
+}));
 let mockComments = [];
 jest.mock('@/services/comments', () => ({
   subscribeToComments: (tripId, onChange) => {
@@ -121,6 +133,7 @@ describe('when logged in', () => {
     mockSession = LOGGED_IN;
     mockExpenses = [];
     mockComments = [];
+    mockPermission = 'undetermined';
   });
 
   it('opens on Home with the trip list', async () => {
@@ -263,6 +276,25 @@ describe('when logged in', () => {
     ];
     await renderRouter('./src/app', { initialUrl: '/trips/t1' });
     expect(screen.getByText('You paid · 2 comments')).toBeTruthy();
+  });
+
+  it('asks to allow notifications on Home until answered', async () => {
+    await renderRouter('./src/app', { initialUrl: '/home' });
+    expect(await screen.findByText('Get notified when friends add expenses.')).toBeTruthy();
+  });
+
+  it('does not ask once notifications are allowed', async () => {
+    mockPermission = 'granted';
+    await renderRouter('./src/app', { initialUrl: '/home' });
+    expect(await screen.findByText('Your trips')).toBeTruthy();
+    expect(screen.queryByText('Get notified when friends add expenses.')).toBeNull();
+  });
+
+  it('shows the Notifications switch on Account', async () => {
+    mockPermission = 'granted';
+    await renderRouter('./src/app', { initialUrl: '/account' });
+    expect(await screen.findByLabelText('Notifications')).toBeTruthy();
+    expect(screen.getByText('When friends add expenses to your trips')).toBeTruthy();
   });
 
   it('opens Join trip from its route', async () => {

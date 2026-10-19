@@ -36,6 +36,8 @@ export function addExpense(tripId, uid, expense) {
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     isDeleted: false,
+    // Cleared once the other members have been notified (SPEC §11).
+    notifyPending: true,
   });
   return { id: ref.id, saved };
 }

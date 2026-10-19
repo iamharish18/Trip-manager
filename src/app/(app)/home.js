@@ -5,6 +5,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Icon, Text } from 'react-native-paper';
 
 import Avatar from '@/components/Avatar';
+import NotificationPrompt from '@/components/NotificationPrompt';
 import Screen from '@/components/Screen';
 import ScreenHeader from '@/components/ScreenHeader';
 import TripCard from '@/components/TripCard';
@@ -66,6 +67,8 @@ export default function HomeScreen() {
           </Pressable>
         }
       />
+
+      <NotificationPrompt />
 
       {body}
 

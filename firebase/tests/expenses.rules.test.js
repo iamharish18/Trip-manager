@@ -43,6 +43,7 @@ function newExpense(overrides = {}) {
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     isDeleted: false,
+    notifyPending: true,
     ...overrides,
   };
 }
