@@ -81,7 +81,7 @@ Decisions agreed in discussion, by milestone. SPEC.md holds the full rules; this
 - Free plan: the phone that adds an expense sends the push via Expo's push service; no server.
 - Push addresses are stored per trip (`pushTokens`), visible only to that trip's members.
 - Each expense notifies at most once (`notifyPending`); missed ones are sent the next time the adder opens the app online.
-- Ask permission with a card on Home; Account has an on/off switch; tap opens the expense; banners show while the app is open.
+- **On by default:** Android's permission prompt appears right after login (no in-app card). Account has an on/off switch; tap opens the expense; banners show while the app is open.
 - **Needs a new dev build** (expo-notifications) and **FCM V1 credentials uploaded to EAS** (one-time; see "Push notification credentials" below).
 
 ---

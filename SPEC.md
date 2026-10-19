@@ -244,7 +244,7 @@ Example:
 - **Tapping** a notification opens that expense's detail screen. Notifications also show as banners while the app is open.
 - **How (free plan):** each phone saves its Expo push address on every trip it belongs to (`pushTokens`); the phone that adds an expense sends the push through Expo's push service once the expense has reached the server.
 - **Offline / closed app:** each new expense starts with `notifyPending`; if the push couldn't be sent yet, the adder's phone sends it the next time the app is open and online. Each expense notifies at most once.
-- **Permission:** a card on Home ("Get notified when friends add expenses") with Allow / Not now. The app works without notifications.
+- **On by default:** right after logging in, the app shows Android's "Allow notifications?" prompt once (Android 13+ requires it; older Android allows them automatically). If declined, the app works without notifications, and they can be turned on later from Account.
 - **Account → Notifications** switch turns them on or off for all your trips. Logging out removes this phone's push address from your trips; leaving a trip removes it from that trip.
 
 ---

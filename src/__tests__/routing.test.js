@@ -1,7 +1,10 @@
 // Checks which screen the app lands on for logged-out and logged-in users,
 // using the real route files in src/app with Firebase mocked out.
 
-import { renderRouter, screen } from 'expo-router/testing-library';
+import { renderRouter, screen, waitFor } from 'expo-router/testing-library';
+
+// Rendering the whole app is slow on a cold Jest cache; allow for it.
+jest.setTimeout(20000);
 
 let mockSession;
 
@@ -71,10 +74,13 @@ jest.mock('@/services/trips', () => ({
   },
 }));
 let mockPermission = 'undetermined';
+const mockRequestPermission = jest.fn(() =>
+  Promise.resolve({ status: 'granted', canAskAgain: true }),
+);
 jest.mock('@/services/notifications', () => ({
   configureNotificationDisplay: () => {},
   getPermission: () => Promise.resolve({ status: mockPermission, canAskAgain: true }),
-  requestPermission: () => Promise.resolve({ status: 'granted', canAskAgain: true }),
+  requestPermission: () => mockRequestPermission(),
   getPushToken: () => Promise.resolve('ExponentPushToken[test]'),
   saveTokenToTrips: () => Promise.resolve(),
   removeTokenFromTrips: () => Promise.resolve(),
@@ -134,6 +140,7 @@ describe('when logged in', () => {
     mockExpenses = [];
     mockComments = [];
     mockPermission = 'undetermined';
+    mockRequestPermission.mockClear();
   });
 
   it('opens on Home with the trip list', async () => {
@@ -278,16 +285,16 @@ describe('when logged in', () => {
     expect(screen.getByText('You paid · 2 comments')).toBeTruthy();
   });
 
-  it('asks to allow notifications on Home until answered', async () => {
+  it('asks Android for notification permission right after login (on by default)', async () => {
     await renderRouter('./src/app', { initialUrl: '/home' });
-    expect(await screen.findByText('Get notified when friends add expenses.')).toBeTruthy();
+    await waitFor(() => expect(mockRequestPermission).toHaveBeenCalledTimes(1));
   });
 
-  it('does not ask once notifications are allowed', async () => {
+  it('does not ask again once notifications are allowed', async () => {
     mockPermission = 'granted';
     await renderRouter('./src/app', { initialUrl: '/home' });
     expect(await screen.findByText('Your trips')).toBeTruthy();
-    expect(screen.queryByText('Get notified when friends add expenses.')).toBeNull();
+    expect(mockRequestPermission).not.toHaveBeenCalled();
   });
 
   it('shows the Notifications switch on Account', async () => {

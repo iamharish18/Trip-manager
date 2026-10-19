@@ -1,9 +1,9 @@
-// Notifications for the signed-in user (SPEC §11): permission, saving this
+// Notifications for the signed-in user (SPEC §11), on by default: permission, saving this
 // phone's push address on your trips, sending notifications that are still
 // pending, and opening the right expense when a notification is tapped.
 
 import { useRouter } from 'expo-router';
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
 import { notificationRoute } from '@/logic/notifications';
@@ -41,7 +41,7 @@ export function NotificationsProvider({ children }) {
   const { user, profile } = useSession();
   const { trips, isLoading: tripsLoading } = useMyTrips();
   const [permission, setPermission] = useState(null); // { status, canAskAgain }
-  const [promptDismissed, setPromptDismissed] = useState(false);
+  const askedRef = useRef(false);
 
   const uid = user?.uid;
   const muted = Boolean(profile?.notificationsOff);
@@ -56,6 +56,16 @@ export function NotificationsProvider({ children }) {
       .catch(() => {});
   }, []);
   useOnForeground(refreshPermission);
+
+  // On by default: right after logging in, show Android's "Allow
+  // notifications?" prompt once if it hasn't been answered yet.
+  useEffect(() => {
+    if (!uid || muted || permission?.status !== 'undetermined' || askedRef.current) return;
+    askedRef.current = true;
+    requestPermission()
+      .then(setPermission)
+      .catch(() => {});
+  }, [uid, muted, permission?.status]);
 
   // Save this phone's push address on every trip you belong to.
   useEffect(() => {
@@ -111,9 +121,6 @@ export function NotificationsProvider({ children }) {
     muted,
     // On means: Android allows it and you haven't switched it off.
     isOn: permission?.status === 'granted' && !muted,
-    // Show the "Get notified" card on Home?
-    shouldPrompt: permission?.status === 'undetermined' && !muted && !promptDismissed,
-    dismissPrompt: () => setPromptDismissed(true),
     enable,
     disable,
     // Before logging out, so the next account on this phone doesn't get yours.
