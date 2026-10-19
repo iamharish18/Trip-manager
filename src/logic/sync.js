@@ -60,6 +60,7 @@ const ONLINE_ACTIONS = {
   leaveTrip: 'Leaving a trip',
   closeTrip: 'Closing a trip',
   reopenTrip: 'Reopening a trip',
+  deleteTrip: 'Deleting a trip',
 };
 
 // "You're offline. Creating a trip needs internet."

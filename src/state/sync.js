@@ -57,7 +57,8 @@ export function SyncProvider({ children }) {
   );
 
   const value = useMemo(
-    () => ({ offline, trackWrite, requireOnline }),
+    // showMessage: a short app-wide message at the bottom of the screen.
+    () => ({ offline, trackWrite, requireOnline, showMessage: setNotice }),
     [offline, trackWrite, requireOnline],
   );
 

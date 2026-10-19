@@ -12,11 +12,12 @@ import { useAppTheme } from '@/theme';
 function TripGate() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { isLoading, notFound } = useTrip();
+  const { isLoading, notFound, trip } = useTrip();
 
   if (isLoading) return <LoadingScreen />;
 
-  if (notFound) {
+  // A trip being deleted is already gone as far as anyone can tell.
+  if (notFound || trip?.deleting) {
     return (
       <Screen>
         <View style={styles.center}>

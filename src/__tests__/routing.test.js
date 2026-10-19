@@ -142,6 +142,9 @@ jest.mock('@/services/notifications', () => ({
   notifyNewExpense: () => Promise.resolve(),
   notifyTripEvent: () => Promise.resolve(),
 }));
+jest.mock('@/services/report', () => ({ exportTripPdf: () => Promise.resolve() }));
+const mockDeleteTrip = jest.fn(() => Promise.resolve());
+jest.mock('@/services/deleteTrip', () => ({ deleteTrip: (...args) => mockDeleteTrip(...args) }));
 jest.mock('@/services/lifecycle', () => ({
   subscribeToSettlements: (tripId, onChange) => {
     onChange(mockSettlements[tripId] ?? []);
@@ -430,6 +433,23 @@ describe('when logged in', () => {
       await screen.findByText('You’re offline · changes will sync later', {}, { timeout: 6000 }),
     ).toBeTruthy();
     expect(screen.getByLabelText('Sync status: Offline')).toBeTruthy();
+  });
+
+  it('offers Export PDF to everyone and Delete trip to the creator', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t1/settings' });
+    expect(screen.getByText('Export PDF')).toBeTruthy();
+    expect(screen.getByText('Delete trip')).toBeTruthy();
+  });
+
+  it('has a PDF icon in the trip header', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t1' });
+    expect(screen.getByLabelText('Export PDF')).toBeTruthy();
+  });
+
+  it('does not offer Delete trip to members', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trips/t2/settings' });
+    expect(screen.getByText('Export PDF')).toBeTruthy();
+    expect(screen.queryByText('Delete trip')).toBeNull();
   });
 
   it('opens Join trip from its route', async () => {

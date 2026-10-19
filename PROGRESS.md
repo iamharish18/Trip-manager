@@ -17,7 +17,7 @@
 | M7 | Notifications | ✅ Done | [#8](https://github.com/iamharish18/Trip-manager/pull/8) |
 | M8 | Trip lifecycle and settlements | ✅ Done | [#9](https://github.com/iamharish18/Trip-manager/pull/9) |
 | M9 | Offline hardening | ✅ Done | [#10](https://github.com/iamharish18/Trip-manager/pull/10) |
-| M10 | PDF export and trip deletion | ⏭️ Next | — |
+| M10 | PDF export and trip deletion | 🧪 Built, needs new build on phones | — |
 | M11 | Polish and release | ⏳ Not started | — |
 
 ---
@@ -95,7 +95,12 @@ Decisions agreed in discussion, by milestone. SPEC.md holds the full rules; this
 - Rejected changes are reported while the app is open; after a full restart they can't be (accepted limitation).
 - Online-only actions say "needs internet" at once; buttons stay tappable.
 - Latest edit wins, no conflict UI.
-- **For M11:** expo-doctor reports patch updates (expo 58.0.15, expo-asset 58.0.17, expo-router 58.0.24). Upgrade them together with a new dev build in M11.
+- expo-doctor reported Expo patch updates; they were applied in M10 together with that milestone's new build.
+
+### M10 — PDF export and trip deletion
+- **New dev build** (expo-print, expo-sharing, expo-file-system) that also includes the Expo patch updates.
+- PDF: any member, any time; marked "Not final" while open; no comments or per-expense splits; A4.
+- Delete: creator only, any status, one strong confirmation, needs internet; members are notified; interrupted deletes resume.
 
 ---
 

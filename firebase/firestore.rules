@@ -55,7 +55,12 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['tripId'])
         && getAfter(/databases/$(database)/documents/trips/$(request.resource.data.tripId)).data.creatorUid == request.auth.uid
         && getAfter(/databases/$(database)/documents/trips/$(request.resource.data.tripId)).data.joinCode == code;
-      allow list, update, delete: if false;
+      allow list, update: if false;
+
+      // Removed with its trip, by the creator, once the trip is being deleted.
+      allow delete: if signedIn()
+        && get(/databases/$(database)/documents/trips/$(resource.data.tripId)).data.creatorUid == request.auth.uid
+        && get(/databases/$(database)/documents/trips/$(resource.data.tripId)).data.get('deleting', false) == true;
     }
 
     // ---- Trips (SPEC §4, §5) --------------------------------------------
@@ -76,8 +81,10 @@ service cloud.firestore {
         && request.time < trip.data.reopenedAt + duration.value(24, 'h');
     }
 
+    // Nothing can change in a trip that is being deleted (SPEC §13).
     function editable(trip) {
-      return trip.data.status == 'active' || reopenWindowOpen(trip);
+      return (trip.data.status == 'active' || reopenWindowOpen(trip))
+        && trip.data.get('deleting', false) == false;
     }
 
     match /trips/{tripId} {
@@ -160,10 +167,21 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'closedAt']);
       }
 
-      allow update: if signedIn()
-        && (editsDetails() || joins() || leaves() || closes() || reopens() || finalisesAfterWindow());
+      // Deleting (creator, SPEC §13), step 1: mark the trip as being deleted.
+      function marksDeleting() {
+        return resource.data.creatorUid == request.auth.uid
+          && request.resource.data.deleting == true
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleting']);
+      }
 
-      allow delete: if false;
+      allow update: if signedIn()
+        && (editsDetails() || joins() || leaves() || closes() || reopens() || finalisesAfterWindow()
+            || marksDeleting());
+
+      // Step 3: the trip itself, once its contents are gone.
+      allow delete: if signedIn()
+        && resource.data.creatorUid == request.auth.uid
+        && resource.data.get('deleting', false) == true;
 
       function trip() {
         return get(tripPath(tripId));
@@ -175,6 +193,14 @@ service cloud.firestore {
 
       function isMember() {
         return signedIn() && request.auth.uid in trip().data.memberUids;
+      }
+
+      // Step 2 of deleting: the creator may remove anything inside a trip
+      // that is marked as being deleted.
+      function creatorDeletingTrip() {
+        return signedIn()
+          && trip().data.creatorUid == request.auth.uid
+          && trip().data.get('deleting', false) == true;
       }
 
       // ---- Participants (SPEC §5) ----
@@ -243,10 +269,11 @@ service cloud.firestore {
 
         // The creator removes people who haven't claimed their spot.
         // (The app also blocks removing anyone who is in an expense.)
-        allow delete: if signedIn()
+        allow delete: if (signedIn()
           && trip().data.creatorUid == request.auth.uid
           && editable(trip())
-          && resource.data.claimedByUid == null;
+          && resource.data.claimedByUid == null)
+          || creatorDeletingTrip();
       }
 
       // ---- Custom categories (SPEC §7) ----
@@ -265,7 +292,7 @@ service cloud.firestore {
           && request.resource.data.createdAt == request.time;
 
         // The app only deletes categories that no expense uses.
-        allow delete: if isMember() && editable(trip());
+        allow delete: if (isMember() && editable(trip())) || creatorDeletingTrip();
 
         allow update: if false;
       }
@@ -333,8 +360,9 @@ service cloud.firestore {
 
         allow update: if isMember() && (edits() || marksNotified());
 
-        // Deleting is a soft delete (isDeleted), never a real one.
-        allow delete: if false;
+        // Deleting is a soft delete (isDeleted); real deletes only happen
+        // when the creator deletes the whole trip.
+        allow delete: if creatorDeletingTrip();
       }
 
       // ---- Settlements (SPEC §9) ----
@@ -411,10 +439,11 @@ service cloud.firestore {
 
         // Unpaid settlements are discarded on reopen, or replaced by the
         // closer's double-check right after a close.
-        allow delete: if isMember()
+        allow delete: if (isMember()
           && resource.data.isPaid == false
           && resource.data.isRecordedPayment == false
-          && ((reopeningNow() && trip().data.creatorUid == request.auth.uid) || justClosed());
+          && ((reopeningNow() && trip().data.creatorUid == request.auth.uid) || justClosed()))
+          || creatorDeletingTrip();
       }
 
       // ---- Push addresses (SPEC §11) ----
@@ -431,7 +460,7 @@ service cloud.firestore {
           && request.resource.data.token.size() > 0
           && request.resource.data.token.size() <= 200
           && request.resource.data.updatedAt == request.time;
-        allow delete: if signedIn() && request.auth.uid == uid;
+        allow delete: if (signedIn() && request.auth.uid == uid) || creatorDeletingTrip();
       }
 
       // ---- Comments (SPEC §10) ----
@@ -453,9 +482,10 @@ service cloud.firestore {
 
         // Comments can't be edited; only the author deletes, while open.
         allow update: if false;
-        allow delete: if isMember()
+        allow delete: if (isMember()
           && editable(trip())
-          && resource.data.authorUid == request.auth.uid;
+          && resource.data.authorUid == request.auth.uid)
+          || creatorDeletingTrip();
       }
     }
   }
