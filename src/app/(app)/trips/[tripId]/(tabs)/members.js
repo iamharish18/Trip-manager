@@ -7,6 +7,7 @@ import { Button, Dialog, IconButton, Menu, Portal, Snackbar, Text } from 'react-
 
 import Avatar from '@/components/Avatar';
 import FormField from '@/components/FormField';
+import { joinShareMessage } from '@/logic/joinCode';
 import { expenseCountFor } from '@/logic/money';
 import { participantStatus, sortParticipants } from '@/logic/trips';
 import { MAX_PARTICIPANTS, validateParticipantName } from '@/logic/validation';
@@ -19,9 +20,7 @@ function TripIdCard({ trip }) {
   const theme = useAppTheme();
 
   function share() {
-    Share.share({
-      message: `Join my trip "${trip.name}" on Trip Manager. Trip ID: ${trip.joinCode}`,
-    });
+    Share.share({ message: joinShareMessage(trip) });
   }
 
   return (
@@ -36,7 +35,7 @@ function TripIdCard({ trip }) {
         <IconButton
           icon="share-variant-outline"
           iconColor={theme.app.primary}
-          accessibilityLabel="Share Trip ID"
+          accessibilityLabel="Share join link"
           onPress={share}
         />
       </View>

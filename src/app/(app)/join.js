@@ -1,8 +1,8 @@
 // Join trip (SPEC §5): Trip ID → preview → claim your name, or add yourself.
 // Needs internet: each step reads from or writes to the server.
 
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Button, Icon, Text } from 'react-native-paper';
 
@@ -13,6 +13,7 @@ import Screen from '@/components/Screen';
 import ScreenHeader from '@/components/ScreenHeader';
 import { formatTripDates } from '@/logic/dates';
 import { describeError } from '@/logic/errors';
+import { isValidJoinCode, normalizeJoinCode } from '@/logic/joinCode';
 import { sortParticipants } from '@/logic/trips';
 import { MAX_PARTICIPANTS, validateParticipantName } from '@/logic/validation';
 import { claimSpot, joinAsNewPerson, lookupTrip } from '@/services/join';
@@ -57,19 +58,23 @@ export default function JoinTripScreen() {
   const { user, displayName } = useSession();
   const { requireOnline } = useSync();
 
-  const [code, setCode] = useState('');
+  // A join link (…/join?code=GQA7K2) opens this screen with the Trip ID.
+  const params = useLocalSearchParams();
+  const linkCode = normalizeJoinCode(typeof params.code === 'string' ? params.code : '');
+
+  const [code, setCode] = useState(linkCode);
   const [found, setFound] = useState(null); // { tripId, trip, participants }
   const [choice, setChoice] = useState(null); // participant id or NEW_PERSON
   const [newName, setNewName] = useState(displayName);
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
 
-  async function findTrip() {
+  async function findTrip(codeToFind = code) {
     setErrors({});
     setBusy(true);
     try {
       requireOnline('joinTrip');
-      const result = await lookupTrip(code, user.uid);
+      const result = await lookupTrip(codeToFind, user.uid);
       if (result.isMember) {
         router.replace(`/trips/${result.tripId}`);
         return;
@@ -83,6 +88,15 @@ export default function JoinTripScreen() {
       setBusy(false);
     }
   }
+
+  // Look the trip up straight away when the link had a valid Trip ID.
+  const autoFindRef = useRef(false);
+  useEffect(() => {
+    if (autoFindRef.current || !isValidJoinCode(linkCode)) return;
+    autoFindRef.current = true;
+    findTrip(linkCode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per link
+  }, [linkCode]);
 
   async function join() {
     setErrors({});
@@ -139,10 +153,10 @@ export default function JoinTripScreen() {
           autoCorrect={false}
           maxLength={9}
           style={styles.codeInput}
-          onSubmitEditing={findTrip}
+          onSubmitEditing={() => findTrip()}
         />
         <FormMessage message={errors.form} />
-        <Button mode="contained" onPress={findTrip} loading={busy} disabled={busy}>
+        <Button mode="contained" onPress={() => findTrip()} loading={busy} disabled={busy}>
           Find trip
         </Button>
         <Text variant="bodySmall" style={[styles.hint, { color: theme.app.muted }]}>

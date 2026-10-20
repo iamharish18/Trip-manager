@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.iamharish18.tripmanager",
+      "sha256_cert_fingerprints": [
+        "8E:A1:D1:D4:5F:7A:37:AF:56:C2:E8:90:CC:44:27:46:31:A3:3D:4C:21:94:17:B2:1C:74:DD:A6:56:54:B4:37"
+      ]
+    }
+  }
+]

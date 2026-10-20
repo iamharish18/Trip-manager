@@ -5,6 +5,17 @@
     "rules": "firebase/firestore.rules",
     "indexes": "firebase/firestore.indexes.json"
   },
+  "hosting": {
+    "public": "firebase/hosting",
+    "cleanUrls": true,
+    "ignore": ["**/node_modules/**"],
+    "headers": [
+      {
+        "source": "/.well-known/assetlinks.json",
+        "headers": [{ "key": "Content-Type", "value": "application/json" }]
+      }
+    ]
+  },
   "emulators": {
     "auth": { "port": 9099 },
     "firestore": { "port": 8080 },

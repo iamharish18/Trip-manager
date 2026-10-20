@@ -145,6 +145,13 @@ jest.mock('@/services/notifications', () => ({
 jest.mock('@/services/report', () => ({ exportTripPdf: () => Promise.resolve() }));
 const mockDeleteTrip = jest.fn(() => Promise.resolve());
 jest.mock('@/services/deleteTrip', () => ({ deleteTrip: (...args) => mockDeleteTrip(...args) }));
+// A join link for a trip you're already in goes straight to it.
+const mockLookupTrip = jest.fn(() => Promise.resolve({ tripId: 't1', isMember: true }));
+jest.mock('@/services/join', () => ({
+  lookupTrip: (...args) => mockLookupTrip(...args),
+  claimSpot: () => Promise.resolve(),
+  joinAsNewPerson: () => Promise.resolve(),
+}));
 jest.mock('@/services/lifecycle', () => ({
   subscribeToSettlements: (tripId, onChange) => {
     onChange(mockSettlements[tripId] ?? []);
@@ -456,6 +463,16 @@ describe('when logged in', () => {
     await renderRouter('./src/app', { initialUrl: '/join' });
     expect(screen.getByText('Join a trip')).toBeTruthy();
     expect(screen.getByText('Find trip')).toBeTruthy();
+    expect(mockLookupTrip).not.toHaveBeenCalled();
+  });
+
+  it('looks up the trip from a join link', async () => {
+    mockLookupTrip.mockClear();
+    await renderRouter('./src/app', { initialUrl: '/join?code=gqa-7k2' });
+    await waitFor(() =>
+      expect(mockLookupTrip).toHaveBeenCalledWith('GQA7K2', mockSession.user.uid),
+    );
+    await waitFor(() => expect(screen).toHavePathname('/trips/t1'));
   });
 
   it('shows a joined trip’s members without creator controls', async () => {
