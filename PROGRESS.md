@@ -18,7 +18,7 @@
 | M8 | Trip lifecycle and settlements | ✅ Done | [#9](https://github.com/iamharish18/Trip-manager/pull/9) |
 | M9 | Offline hardening | ✅ Done | [#10](https://github.com/iamharish18/Trip-manager/pull/10) |
 | M10 | PDF export and trip deletion | ✅ Done | [#11](https://github.com/iamharish18/Trip-manager/pull/11) |
-| M11 | Polish and release | 🚧 In progress | — |
+| M11 | Polish and release | ✅ Done | [#12](https://github.com/iamharish18/Trip-manager/pull/12) |
 
 ---
 
@@ -252,6 +252,7 @@ Android notifications go through Firebase Cloud Messaging (free on the Spark pla
 |---|---|
 | Phone: **"Failed to open app"** / **"Host unreachable"** | The dev server isn't running or its tunnel is stale. Restart `npm start` and scan the new QR code. |
 | Dev server stops right after starting with **`getaddrinfo ENOTFOUND …on.expo.app`** | A DNS timing blip with the brand-new tunnel address. Start it again and scan the new QR code. |
+| Phone: red screen **"Cannot find native module '…'"** | The phone is running an older build that lacks a newer native module. Updating over it can silently fail: **uninstall Trip Manager**, then install the latest dev build from expo.dev. |
 | Phone: **"Unmatched Route"** | A routing bug. Fixed in M1 with a start route at `/`; the routing tests guard against it. |
 | `npm run test:rules` says Java is too old | `JAVA_HOME` must point to JDK 21 (`C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot`). |
 | Rules tests fail only when run together | They share one emulator, so they must run one file at a time (`maxWorkers: 1` in `jest.rules.config.js`). |
