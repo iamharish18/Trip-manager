@@ -22,3 +22,19 @@ export function normalizeJoinCode(input) {
 export function isValidJoinCode(code) {
   return JOIN_CODE_PATTERN.test(code ?? '');
 }
+
+// Join links open the app's Join screen with the Trip ID filled in. The page
+// is on Firebase Hosting, so people without the app still see the Trip ID.
+export const JOIN_LINK_HOST = 'trip-manager-a75e6.web.app';
+
+export function joinLink(code) {
+  return `https://${JOIN_LINK_HOST}/join?code=${encodeURIComponent(code)}`;
+}
+
+export function joinShareMessage(trip) {
+  return (
+    `Join my trip "${trip.name}" on Trip Manager.\n` +
+    `Tap to join: ${joinLink(trip.joinCode)}\n` +
+    `Or enter the Trip ID: ${trip.joinCode}`
+  );
+}

@@ -33,7 +33,7 @@ export default function HomeScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { user, displayName } = useSession();
-  const { trips: allTrips, isLoading } = useMyTrips();
+  const { trips: allTrips, isLoading, error } = useMyTrips();
   // Trips being deleted are hidden (SPEC §13).
   const trips = allTrips.filter((t) => !t.deleting);
   useResumeDeletes(allTrips, user?.uid);
@@ -43,6 +43,16 @@ export default function HomeScreen() {
     body = (
       <View style={styles.center}>
         <ActivityIndicator />
+      </View>
+    );
+  } else if (error && trips.length === 0) {
+    body = (
+      <View style={styles.center}>
+        <Icon source="cloud-alert-outline" size={34} color={theme.app.muted} />
+        <Text variant="titleMedium">Couldn’t load your trips</Text>
+        <Text style={[styles.emptyText, { color: theme.app.muted }]}>
+          Check your internet connection, then close and reopen the app.
+        </Text>
       </View>
     );
   } else if (trips.length === 0) {

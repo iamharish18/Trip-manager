@@ -8,6 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "environment": "development",
+      "channel": "development",
       "android": {
         "buildType": "apk"
       }
@@ -15,12 +16,14 @@
     "preview": {
       "distribution": "internal",
       "environment": "preview",
+      "channel": "preview",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
-      "environment": "production"
+      "environment": "production",
+      "channel": "production"
     }
   }
 }

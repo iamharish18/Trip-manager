@@ -2,6 +2,8 @@ import {
   JOIN_CODE_ALPHABET,
   generateJoinCode,
   isValidJoinCode,
+  joinLink,
+  joinShareMessage,
   normalizeJoinCode,
 } from './joinCode';
 
@@ -42,4 +44,17 @@ describe('isValidJoinCode', () => {
       expect(isValidJoinCode(code)).toBe(false);
     },
   );
+});
+
+describe('join links', () => {
+  it('points at the Join page with the Trip ID', () => {
+    expect(joinLink('GQA7K2')).toBe('https://trip-manager-a75e6.web.app/join?code=GQA7K2');
+  });
+
+  it('shares the link and the Trip ID', () => {
+    const message = joinShareMessage({ name: 'Goa', joinCode: 'GQA7K2' });
+    expect(message).toContain('"Goa"');
+    expect(message).toContain('https://trip-manager-a75e6.web.app/join?code=GQA7K2');
+    expect(message).toContain('Trip ID: GQA7K2');
+  });
 });

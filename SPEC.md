@@ -111,6 +111,7 @@ ACTIVE ──(creator closes)──► CLOSED ──(creator reopens, once)─�
   - **claim an unclaimed name**: it's linked to their account, and all past expenses under that name are now theirs; or
   - **add themselves** if their name isn't on the list ("I'm not on the list"): same name rules (unique ignoring capitals, 1–40 characters) and the 20-person limit.
 - Joining needs internet. If two people claim the same name at the same moment, one wins and the other is asked to pick again.
+- **Join link:** sharing the Trip ID also shares `https://trip-manager-a75e6.web.app/join?code=<Trip ID>`. On a phone with the app it opens the Join screen with the Trip ID filled in and looks the trip up; elsewhere a web page shows the Trip ID to enter in the app. Logged-out users log in first and then enter the Trip ID.
 - Joined members can add, edit and delete expenses and categories, but can't manage people or edit the trip.
 - Anyone who has the Trip ID can see that trip's preview (name, dates, names) before joining; expenses and balances are visible to members only.
 - The creator can **rename** any participant.
